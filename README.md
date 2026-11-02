@@ -8,7 +8,9 @@ finally validated by backtest before any live scanning.
 > There is no live scanning or order execution yet.
 
 **Current scope:** NQ (E-mini Nasdaq-100) only; liquidity sweeps detected on
-the 5-minute chart. Other markets come after the model is validated on NQ.
+the 5-minute chart; entries at the FVG near edge; screener windows London
+open and NY AM. Defaults live in `ict/config.py`. Other markets come after
+the model is validated on NQ.
 
 ## The model being automated
 
@@ -73,6 +75,7 @@ ict/
   arrays.py        FVGs and the order block left by a displacement leg
   model.py         context build, sweep -> CHoCH sequences, trade simulation
   timewindows.py   kill zones and Silver Bullet hours (ET), labels and gate
+  config.py        defaults decided so far (market, entry, target rule, windows)
 tools/
   plot_swings.py     chart raw pivots vs swing tiers
   plot_structure.py  chart structure breaks with displacement verdicts

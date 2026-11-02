@@ -163,5 +163,8 @@ starting points; final values come from the backtest, not from eyeballing.
   NY AM 8 (2/2, +0.5R); NY PM 3 (0/0); Asia 1. At <= 5 trades per window this
   is noise, but a hard gate would have discarded most of the sample.
 - Decision: every sequence records its kill zone (`killzone` column); the
-  gate (`sweep_choch_sequences(killzones=[...])`) stays off until the
-  backtest on longer data compares all hours vs NY AM vs London + NY.
+  gate (`sweep_choch_sequences(killzones=[...])`) stays off in research until
+  the backtest on longer data compares all hours vs NY AM vs London + NY AM.
+- Robin trades London open and NY AM most of the time (2026-11-02): the live
+  screener alerts only in London + NY AM (`ict/config.py`). In this sample
+  those two windows had 14 sequences, 4 wins / 4 losses at 1R, +0.5R.

@@ -49,8 +49,8 @@ def measure_leg(df: pd.DataFrame, vol: pd.Series, start: int, end: int, directio
     unit = float(np.mean(v[seg]))
     body = np.abs(c[seg] - o[seg])
     rng = h[seg] - lo[seg]
-    with np.errstate(divide="ignore", invalid="ignore"):
-        body_range = float(np.nanmean(np.where(rng > 0, body / rng, np.nan)))
+    ratios = body[rng > 0] / rng[rng > 0]
+    body_range = float(ratios.mean()) if len(ratios) else 0.0
 
     gaps = []
     last_fvg_bar = None

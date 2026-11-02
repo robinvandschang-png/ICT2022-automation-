@@ -202,3 +202,30 @@ starting points; final values come from the backtest, not from eyeballing.
 - Reading: as decided, v1 produces about one NQ trade a month. The biggest
   filters are the kill-zone gate (30 of 44) and the P/D gate (8 of 11).
   Too few trades to judge the rules on NQ alone, even with years of data.
+
+## Multi-market run (rules unchanged, 2026-11-02)
+- Data: 36 full-size CME futures (micros and mini duplicates excluded), 5m,
+  Jan–Apr 2026, from the same free TopstepX dataset. Each file is one fixed
+  contract; gold and platinum turn illiquid near expiry, FX / rates / NKD /
+  crypto cover only 5–7 weeks. Each market is trimmed to days with volume
+  >= 20% of its median day; 10-day warm-up.
+- Rules were designed on NQ only, so the other 35 markets are out-of-sample
+  for the rule design (same calendar period, though).
+- Costs: $4.50 commission per round trip ($1 for micro crypto) + 1 tick
+  slippage on every trade (`ict/contracts.py`). 95% ranges come from
+  resampling whole trading days.
+
+  | Variant | Trades | Avg R gross | Avg cost | Avg R net | Net 95% range |
+  |---|---|---|---|---|---|
+  | v1 as decided (London + NY AM) | 37 | +0.11 | 0.09 | +0.02 | -0.70 to +0.72 |
+  | v1, all hours | 159 | +0.24 | 0.11 | +0.13 | -0.17 to +0.45 |
+  | v1, all hours, fixed 1R | 276 | +0.16 | 0.09 | +0.06 | -0.04 to +0.17 |
+
+- Net R by class (all hours, pool target): equity indices +24.4 (34 trades,
+  cost 0.03R), energy +5.6, crypto +5.7 (5 trades), currencies +2.5;
+  agriculture -3.2, rates -6.8, metals -7.4. Costs are 0.15–0.26R per trade
+  in agriculture, rates and currencies, where stops are only a few ticks wide.
+- Equity-index trades rarely coincide: 31 trades at 29 distinct times.
+- Reading: nothing is statistically conclusive after costs. Equity indices
+  are the strongest class; the kill-zone gate still shows no benefit; costs
+  call for a minimum-risk (maximum cost) rule.

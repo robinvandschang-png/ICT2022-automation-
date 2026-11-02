@@ -40,7 +40,8 @@ half. Stop beyond the sweep, target the draw on liquidity, minimum R:R.
 | Premium / discount, dealing range | `ict/premium_discount.py` | Done — gate: entry in discount (longs) / premium (shorts) of the bigger dealing range |
 | Time windows (kill zones, Silver Bullet) | `ict/timewindows.py` | Built — every setup records its kill zone; gate available, off until the backtest shows it helps |
 | Model assembly (gated sequence) | `ict/model.py` | Done (v1) — all gates in one pipeline (`build_trades`); run with `tools/run_model.py` |
-| Backtest (results in R, out-of-sample) | — | Planned |
+| Multi-market research run (36 CME futures, same rules) | `tools/run_markets.py` | Done — results net of costs in `docs/decisions.md` |
+| Backtest (results in R, out-of-sample) | — | Next — needs longer history |
 | Screener and alerts | — | Planned |
 
 Every definition, threshold and the reason behind it is logged in
@@ -77,6 +78,7 @@ ict/
   timewindows.py   kill zones and Silver Bullet hours (ET), labels and gate
   config.py        defaults decided so far (market, entry, target rule, windows)
   premium_discount.py  entry position in the setup move or the dealing range
+  contracts.py     tick size / tick value per contract; trading costs in R
 tools/
   plot_swings.py     chart raw pivots vs swing tiers
   plot_structure.py  chart structure breaks with displacement verdicts
@@ -86,6 +88,7 @@ tools/
   time_check.py      when NQ's daily high/low forms; setups and results by kill zone
   pd_check.py        premium/discount position of entries and results by half
   run_model.py       run the decided v1 model + variants; gate funnel, trades CSV and chart
+  run_markets.py     same model across many futures; liquidity trim, costs, day-resampled ranges
 tests/             unit tests incl. no-lookahead checks
 docs/decisions.md  design decision log
 ```

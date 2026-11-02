@@ -51,3 +51,18 @@ starting points; final values come from the backtest, not from eyeballing.
   (`tools/sweep_gallery.py`, seed 7).
 - NQ 5m London + NY hours (Feb–Apr 2026): of 197 takes, 93 closed back on the
   taking candle, 47 within 1–3 candles, 12 within 4–12, 45 not within 12.
+- Batch 1 (12 takes, Robin's labels: 4 sweep, 6 run, 2 unsure):
+  - (A) close test: 7/10 — misses 3 of the 4 sweeps (they closed beyond first).
+  - (B) back inside within 1–3 candles: 9/10.
+  - The one miss can't be fixed by any take-time rule: #4 (sweep) and #10
+    (run) both reclaimed after 2 candles at depth 0.71. What separated them
+    was the follow-through — the job of the next gate (CHoCH on
+    displacement), not of the sweep rule.
+- Objective check (all 197 takes): a displacement break in the reversal
+  direction followed within 12 candles for 11% of same-candle reclaims, 17%
+  of 1–3-candle reclaims, 0% of 4–12-candle reclaims (n=12), 2% of takes not
+  reclaimed within 12 (n=45). 1–3-candle reclaims deeper than 1 yardstick:
+  0 of 4.
+- Working rule (pending batch 2): sweep candidate = back inside within 3
+  candles and no deeper than ~1 yardstick; confirmation comes from the CHoCH
+  gate. Batch 2 targets the boundary (depth 0.5–2, reclaim 1–6).

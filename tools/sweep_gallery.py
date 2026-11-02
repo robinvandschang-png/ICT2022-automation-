@@ -33,7 +33,12 @@ from tools.plot_swings import draw_candles
 TZ = "America/New_York"
 PRIORITY = {"PWH": 0, "PWL": 0, "PDH": 1, "PDL": 1, "London H": 2, "London L": 2,
             "Asia H": 3, "Asia L": 3, "T2 high": 4, "T2 low": 4}
-QUOTA = {"wick": 3, "quick": 4, "slow": 2, "hold": 3}
+QUOTAS = {
+    # first pass: spread across the whole range
+    "spread": {"wick": 3, "quick": 4, "slow": 2, "hold": 3},
+    # second pass: only the cases that decide N and the depth cap
+    "boundary": {"quick-deep": 4, "quick-mid": 4, "medium": 3, "wick-deep": 1},
+}
 
 
 def category(r) -> str:
@@ -42,6 +47,19 @@ def category(r) -> str:
     if r.reclaim_bars == 0:
         return "wick"
     return "quick" if r.reclaim_bars <= 3 else "slow"
+
+
+def boundary_category(r) -> str:
+    rb = None if pd.isna(r.reclaim_bars) else int(r.reclaim_bars)
+    if rb is not None and 1 <= rb <= 3 and r.depth >= 1.0:
+        return "quick-deep"
+    if rb is not None and 2 <= rb <= 3 and 0.5 <= r.depth < 1.0:
+        return "quick-mid"
+    if rb is not None and 4 <= rb <= 6:
+        return "medium"
+    if rb == 0 and r.depth >= 0.8:
+        return "wick-deep"
+    return "other"
 
 
 def all_takes(df: pd.DataFrame) -> pd.DataFrame:
@@ -68,19 +86,25 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--before", type=int, default=30)
     ap.add_argument("--after", type=int, default=24)
+    ap.add_argument("--mode", choices=list(QUOTAS), default="spread")
+    ap.add_argument("--exclude", nargs="*", default=[], help="answer keys of galleries already shown")
     a = ap.parse_args()
 
     df = load_csv(glob.glob(a.csv)[0])
     takes = all_takes(df)
+    if a.mode == "boundary":
+        takes["category"] = [boundary_category(r) for r in takes.itertuples(index=False)]
     warm = df.index.searchsorted(df.index[0] + pd.Timedelta(days=20))
     ok = (takes["taken_bar"] >= warm) & (takes["taken_bar"] + a.after < len(df))
     ok &= in_killzone(df, takes["taken_bar"])
+    for key_file in a.exclude:
+        ok &= ~takes["taken_bar"].isin(pd.read_csv(key_file)["taken_bar"])
     pool = takes[ok]
     print("available:", pool["category"].value_counts().to_dict())
 
     rng = np.random.default_rng(a.seed)
     picks = []
-    for cat, n in QUOTA.items():
+    for cat, n in QUOTAS[a.mode].items():
         c = pool[pool["category"] == cat]
         picks.append(c.iloc[rng.choice(len(c), size=min(n, len(c)), replace=False)])
     sample = pd.concat(picks).sample(frac=1, random_state=a.seed).reset_index(drop=True)

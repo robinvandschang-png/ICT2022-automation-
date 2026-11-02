@@ -33,8 +33,8 @@ half. Stop beyond the sweep, target the draw on liquidity, minimum R:R.
 | Structure breaks (raw BOS/CHoCH event) | `ict/structure.py` | Done — BOS vs CHoCH labelling pending |
 | 3. Displacement | `ict/displacement.py` | Built — thresholds provisional, FVG requirement open |
 | 4. Liquidity pools and sweeps | `ict/liquidity.py` | Done — sweep rule provisional (back inside within 3 candles, ≤ 1 yardstick deep); equal highs/lows pending |
-| 2. Draw on liquidity | — | Next |
-| PD arrays: FVG, order block | — | Planned |
+| 2. Draw on liquidity | `ict/draw.py` | Done (v1) — target = nearest untapped opposite pool ≥ 2R; higher-timeframe draw later as a tested filter |
+| PD arrays: FVG, order block (entry) | — | Next |
 | Premium / discount, dealing range | — | Planned |
 | Time windows (kill zones, Silver Bullet) | — | Planned |
 | Model assembly (gated sequence) | — | Planned |
@@ -68,11 +68,13 @@ ict/
   structure.py     first close beyond the latest tier-1 swing, with leg start
   displacement.py  leg size, largest body, overlap, FVGs; displacement gates
   liquidity.py     pools (PDH/PDL, PWH/PWL, Asia/London H/L, tier-2 swings),
-                   when each is taken, and facts about the take
+                   when each is taken, facts about the take, sweep rule
+  draw.py          untapped pools at a bar; target = nearest opposite pool >= min R
 tools/
   plot_swings.py     chart raw pivots vs swing tiers
   plot_structure.py  chart structure breaks with displacement verdicts
   sweep_gallery.py   blind gallery of real pool takes for hand labelling
+  draw_check.py      sanity check of target selection on sweep + CHoCH sequences
 tests/             unit tests incl. no-lookahead checks
 docs/decisions.md  design decision log
 ```

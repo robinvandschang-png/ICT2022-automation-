@@ -144,3 +144,24 @@ starting points; final values come from the backtest, not from eyeballing.
   Median risk 86 NQ points. Expectancy is ~+0.3R per trade at every target
   in this sample; 26 decided trades at 1R give a win-rate range of roughly
   47–83% (95%), so not distinguishable from break-even yet.
+
+## Time windows — kill zones (built, gate off for now)
+- Windows (ET, ICT conventions; the course gives no times): Asia 20:00–00:00,
+  London 02:00–05:00, NY AM 08:30–11:00, NY PM 13:30–16:00. Silver Bullet
+  03–04, 10–11, 14–15. Code: `ict/timewindows.py`.
+- Premise test, 273 full NQ trading days of hourly bars (`tools/time_check.py`):
+  share of daily highs/lows forming in each hour (even spread = 4.3%/hour):
+  18:00 (Globex open) 12.3%, 09:00 9.3%, 10:00 9.9%, 11:00 6.0%,
+  15:00 10.8%, 16:00 9.0%; London hours 02–04: 2.2–3.5%; Asia 0.7–3.3%.
+- 5m, 60 days: NY AM holds 18% of daily highs/lows in 11% of the time,
+  NY PM 18% in 11%, London 9% in 13%, Asia 7% in 17%.
+- Reading: for NQ the New York open and the close are where the day's
+  extremes form; London is not special (below an even spread). The Globex
+  open hour is often one end of the day.
+- Setups by sweep window (44 sequences, FVG near edge, fixed 1R): outside
+  any kill zone 26 sequences, 13 wins / 5 losses, +7.7R; London 6 (2/2, 0R);
+  NY AM 8 (2/2, +0.5R); NY PM 3 (0/0); Asia 1. At <= 5 trades per window this
+  is noise, but a hard gate would have discarded most of the sample.
+- Decision: every sequence records its kill zone (`killzone` column); the
+  gate (`sweep_choch_sequences(killzones=[...])`) stays off until the
+  backtest on longer data compares all hours vs NY AM vs London + NY.

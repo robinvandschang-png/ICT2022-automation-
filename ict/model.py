@@ -9,7 +9,9 @@ Built so far
   trading day. Conservative on ambiguity: a candle that touches both the stop
   and the target counts as a stop; the fill candle cannot also hit the target.
 
-Not yet included: time windows (kill zones), premium/discount, costs.
+Time windows: each sequence records the kill zone of its sweep; an optional
+gate keeps only chosen windows (off by default until the backtest shows it helps).
+Not yet included: premium/discount, costs.
 """
 from __future__ import annotations
 
@@ -22,6 +24,7 @@ from ict.displacement import DisplacementParams, evaluate_breaks
 from ict.liquidity import SELL, classify_takes, fixed_pools, pool_takes, swing_pools, take_features, trading_day
 from ict.structure import DOWN, UP, structure_breaks
 from ict.swings import SwingParams, detect_swings
+from ict.timewindows import window_label
 from ict.volatility import volatility
 
 
@@ -47,8 +50,16 @@ def build_context(df: pd.DataFrame, swing_params: SwingParams = SwingParams(),
     return Context(df, vol, swings, breaks, pools, takes, trading_day(df.index).to_numpy())
 
 
-def sweep_choch_sequences(ctx: Context, window: int = 12, buffer: float = 0.1) -> pd.DataFrame:
+def sweep_choch_sequences(ctx: Context, window: int = 12, buffer: float = 0.1,
+                          killzones: list[str] | None = None) -> pd.DataFrame:
+    """Sweep -> displacement CHoCH sequences.
+
+    Every row records the kill zone of its sweep (`killzone`, '' if none).
+    `killzones`: if given, keep only sequences whose sweep happened inside one
+    of these windows (see ict.timewindows.KILLZONES). None = all hours.
+    """
     df = ctx.df
+    zone = window_label(df.index).to_numpy()
     high, low = df["high"].to_numpy(), df["low"].to_numpy()
     v = ctx.vol.to_numpy()
     disp = ctx.breaks[ctx.breaks["displacement"]]
@@ -66,8 +77,11 @@ def sweep_choch_sequences(ctx: Context, window: int = 12, buffer: float = 0.1) -
         stop = low[i:t + 1].min() - buffer * v[i] if direction == UP else high[i:t + 1].max() + buffer * v[i]
         rows.append({"sweep_bar": i, "swept": s.name, "direction": direction,
                      "leg_start": int(brk["leg_start"]), "break_bar": int(brk["bar"]),
-                     "setup_bar": t, "stop": stop})
-    return pd.DataFrame(rows)
+                     "setup_bar": t, "stop": stop, "killzone": zone[i]})
+    out = pd.DataFrame(rows)
+    if killzones is not None and len(out):
+        out = out[out["killzone"].isin(killzones)].reset_index(drop=True)
+    return out
 
 
 def simulate_trade(ctx: Context, direction: str, entry: float, stop: float, target: float,

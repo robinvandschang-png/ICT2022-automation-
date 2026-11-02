@@ -129,3 +129,18 @@ starting points; final values come from the backtest, not from eyeballing.
   less (order block 13/35, FVG midpoint 6/15 vs FVG near edge 9/12).
   5–13 filled trades per option: one trade changes the ranking, so no
   conclusion on which entry is best or whether any has an edge.
+- Robin trades the FVG near edge most (2026-11-02) -> default entry.
+- Fixed-R targets with the FVG near-edge entry (latest gap), same 35
+  sequences with an FVG, all hours, no costs (`entry_check --fixed-rr`):
+
+  | Target | Filled | Wins / losses / open | Win rate | Break-even | Total R |
+  |---|---|---|---|---|---|
+  | 1R | 29 | 17 / 9 / 3 | 65% | 50% | +8.0 |
+  | 1.5R | 30 | 13 / 12 / 5 | 52% | 40% | +8.4 |
+  | 2R | 30 | 11 / 14 / 5 | 44% | 33% | +8.9 |
+  | 3R | 30 | 7 / 16 / 7 | 30% | 25% | +8.7 |
+
+  London + NY AM only: 11 filled; 1R win rate 56% (5/9), +1.2R.
+  Median risk 86 NQ points. Expectancy is ~+0.3R per trade at every target
+  in this sample; 26 decided trades at 1R give a win-rate range of roughly
+  47–83% (95%), so not distinguishable from break-even yet.

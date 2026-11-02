@@ -148,17 +148,63 @@ def plot_examples(ctx, seqs, res, out, n=4, seed=5):
     fig.savefig(out)
 
 
+def fixed_rr(ctx, seqs: pd.DataFrame, rrs, option: str = "FVG edge (latest)", wait: int = 12) -> pd.DataFrame:
+    """Same entry and stop, but the target is a fixed multiple of the risk instead of a pool."""
+    close = ctx.df["close"].to_numpy()
+    rows = []
+    for seq in seqs.itertuples(index=False):
+        opts, _ = entries_for(ctx, seq)
+        if option not in opts:
+            continue
+        entry, place, immediate = opts[option]
+        up = seq.direction == UP
+        if not immediate and ((close[place] <= entry) if up else (close[place] >= entry)):
+            entry, immediate = close[place], True
+        risk = abs(entry - seq.stop)
+        if (up and entry <= seq.stop) or (not up and entry >= seq.stop):
+            continue
+        for k in rrs:
+            target = entry + k * risk if up else entry - k * risk
+            res = simulate_trade(ctx, seq.direction, entry, seq.stop, target, place, wait, immediate)
+            rows.append({"sweep_bar": seq.sweep_bar, "rr": k, "risk_pts": risk, **res})
+    return pd.DataFrame(rows)
+
+
+def fixed_rr_report(t: pd.DataFrame, label: str) -> None:
+    print(f"\n{label}")
+    out = []
+    for k, g in t.groupby("rr"):
+        f = g[g["fill_bar"].notna()]
+        wins, losses = (f["outcome"] == "target").sum(), (f["outcome"] == "stop").sum()
+        out.append({"target": f"{k:g}R", "orders": len(g), "filled": len(f), "wins": int(wins),
+                    "losses": int(losses), "open at day end": int((f["outcome"] == "open at day end").sum()),
+                    "win rate": f"{wins / max(wins + losses, 1) * 100:.0f}%",
+                    "break-even win rate": f"{100 / (1 + k):.0f}%",
+                    "total R": round(float(f["r"].sum()), 1), "avg R": round(float(f["r"].mean()), 2)})
+    print(pd.DataFrame(out).set_index("target").to_string())
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("csv")
     ap.add_argument("--out", default="out/entries.png")
     ap.add_argument("--wait", type=int, default=12)
+    ap.add_argument("--fixed-rr", type=float, nargs="*", help="also test fixed R targets, e.g. 1 1.5 2 3")
     a = ap.parse_args()
     df = load_csv(glob.glob(a.csv)[0])
     ctx = build_context(df)
     seqs = sweep_choch_sequences(ctx)
     warm = df.index.searchsorted(df.index[0] + pd.Timedelta(days=20))
     seqs = seqs[seqs["sweep_bar"] >= warm].reset_index(drop=True)
+    if a.fixed_rr:
+        t = fixed_rr(ctx, seqs, a.fixed_rr, wait=a.wait)
+        fixed_rr_report(t, "FVG near edge (latest gap), fixed R targets — all hours")
+        local = df.index.tz_convert(TZ)[t["sweep_bar"].to_numpy()]
+        m = local.hour * 60 + local.minute
+        kz = ((m >= 120) & (m < 300)) | ((m >= 510) & (m < 690))
+        fixed_rr_report(t[kz], "Same, London 02:00-05:00 + NY 08:30-11:30 ET only")
+        print(f"\nmedian risk: {t['risk_pts'].median():.1f} NQ points")
+        return
     res = run(ctx, seqs, a.wait)
     report(res, len(seqs))
     res.to_csv(a.out.rsplit(".", 1)[0] + ".csv", index=False)

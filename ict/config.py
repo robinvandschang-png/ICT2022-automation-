@@ -23,3 +23,16 @@ PD_RANGE = "dealing"               # "dealing" | "setup" | None
 # setups in the direction of the latest 1H structure break. Research runs keep
 # comparing with / without it (no measurable effect on Jan–Apr 2026 yet).
 HTF_GATE = "1h"                    # "1h" | "4h" | None
+
+# --- Live screener -------------------------------------------------------------
+# Markets to scan: symbol -> Yahoo Finance ticker (free feed, ~10+ min delayed).
+SCREENER_MARKETS = {
+    "NQ": "NQ=F", "ES": "ES=F", "YM": "YM=F", "RTY": "RTY=F",
+    "CL": "CL=F", "GC": "GC=F",
+    "6E": "6E=F", "6B": "6B=F", "6J": "6J=F",
+    "ZN": "ZN=F", "ZB": "ZB=F",
+}
+ACCOUNT_SIZE = 50_000              # USD, for position sizing in alerts
+RISK_PCT = 1.0                     # % of the account risked per trade (book ch. 27)
+MAX_COST_R = 0.10                  # flag a signal whose costs exceed this share of 1R
+SCAN_AFTER_KILLZONE_MIN = 75       # keep scanning this long after a kill zone ends (CHoCH + FVG can come later)

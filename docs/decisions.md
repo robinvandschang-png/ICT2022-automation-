@@ -260,3 +260,20 @@ starting points; final values come from the backtest, not from eyeballing.
   half, 1H trend, strict target >= 2R), 36 markets, 13 Feb – 10 Apr 2026:
   13 trades (about 1.6 a week), 6 targets / 7 stops, +7.5R gross, net
   +0.46R a trade with a 95% range of -0.61 to +1.63. NQ alone: 2 trades.
+
+## Live screener v0 (2026-11-02)
+- Robin chose the live screener before the longer-history backtest.
+- `ict/live/`: each 5-minute candle close during London / NY AM (+75 min),
+  every market in `config.SCREENER_MARKETS` is scanned with exactly the
+  backtest pipeline; an order placed at the latest closed candle becomes an
+  alert. Sent alerts are remembered (no duplicates) and logged to JSONL.
+- Proven: replaying candles one by one reproduces each backtest order at its
+  bar and never earlier (`tests/test_live.py`). Replay of 10 Apr 2026
+  02:00–06:20 ET over the 11 default markets produced exactly the two
+  decided-model trades (NQ and ES longs, signals at 05:25 ET).
+- Alerts include position size at `RISK_PCT` of `ACCOUNT_SIZE` (full-size
+  contract, or the micro when one full contract risks too much) and costs in
+  R, flagged above `MAX_COST_R`.
+- Data: free Yahoo Finance via yfinance, delayed >= 10 minutes (CME rule for
+  free data). Fine for paper alerts; a real-time feed is needed to trade the
+  5m entries live. Runs on Robin's machine; this workspace cannot reach it.

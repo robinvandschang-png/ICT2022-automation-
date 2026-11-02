@@ -2,3 +2,4 @@ pandas>=2.2
 numpy>=1.26
 matplotlib>=3.8
 pytest>=8
+yfinance>=0.2  # live screener: free, delayed Yahoo Finance data

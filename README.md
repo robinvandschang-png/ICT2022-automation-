@@ -43,7 +43,7 @@ half. Stop beyond the sweep, target the draw on liquidity, minimum R:R.
 | Higher-timeframe bias (1H / 4H structure) | `ict/htf.py` | Done — screener trades only with the 1H trend (Robin's practice); research compares with / without |
 | Multi-market research run (36 CME futures, same rules) | `tools/run_markets.py` | Done — results net of costs in `docs/decisions.md` |
 | Backtest (results in R, out-of-sample) | — | Next — needs longer history |
-| Screener and alerts | — | Planned |
+| Live screener and alerts | `ict/live/` | Built (v0) — free delayed Yahoo feed, console + Telegram alerts, replay mode; live signals = backtest orders (tested) |
 
 Every definition, threshold and the reason behind it is logged in
 [`docs/decisions.md`](docs/decisions.md).
@@ -81,6 +81,10 @@ ict/
   premium_discount.py  entry position in the setup move or the dealing range
   contracts.py     tick size / tick value per contract; trading costs in R
   htf.py           1H / 4H candles from 5m, structure bias per 5m bar (closed candles only)
+  live/signals.py  scan the latest closed candles -> signals (entry, stop, target, size, costs)
+  live/feeds.py    replay (CSV) and Yahoo Finance candle feeds, closed candles only
+  live/notify.py   console and Telegram alerts
+  live/screener.py the 5-minute loop during the kill zones; replay mode
 tools/
   plot_swings.py     chart raw pivots vs swing tiers
   plot_structure.py  chart structure breaks with displacement verdicts
@@ -115,6 +119,31 @@ python -m tools.plot_structure "data/nq/NQ_5min*.csv" \
     --windows "2026-03-23 08:00/2026-03-23 12:30" "2026-04-02 08:00/2026-04-02 12:30" \
     --out out/displacement.png
 ```
+
+## Live screener
+
+Runs on your own computer (or a small server) during the kill zones and sends
+an alert for every new signal: market, direction, limit entry (FVG near edge)
+and when to cancel it, stop, target, position size for your account, 1H trend,
+dealing-range position and estimated costs.
+
+```bash
+pip install -r requirements.txt            # includes yfinance
+# optional, for phone alerts (see ict/live/notify.py for the 2-minute setup):
+export TELEGRAM_BOT_TOKEN=...  TELEGRAM_CHAT_ID=...
+python -m ict.live.screener                # Ctrl+C to stop
+```
+
+- Markets, account size, risk % and the cost limit are in `ict/config.py`.
+- Scans London 02:00–05:00 and NY AM 08:30–11:00 ET, plus 75 minutes after
+  each, on every 5-minute candle close.
+- **Data delay:** the free Yahoo feed is delayed by at least 10 minutes (CME
+  rule for free data), so a limit entry may already have filled or run by the
+  time an alert arrives. Use it for paper-trading the signals; plug in a
+  real-time feed (broker or data vendor) before trading them live — a feed is
+  one class with a `candles(sym, now)` method (`ict/live/feeds.py`).
+- Replay any past period from local CSVs, exactly as it would have alerted:
+  `python -m ict.live.screener --replay data/cme --start "2026-04-10 02:00" --end "2026-04-10 06:20"`
 
 Data used so far: NQ (E-mini Nasdaq-100) 1m–1h from the TopstepX API via the
 public repo `axb0306/cme-futures-ohlc` (third-party, not official CME data),

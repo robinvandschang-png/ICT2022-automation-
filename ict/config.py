@@ -18,3 +18,7 @@ SCREENER_KILLZONES = ["London", "NY AM"]
 # Robin: a long's entry must be in discount, a short's in premium, of the bigger
 # dealing range (latest significant swing high/low), 2026-11-02.
 PD_RANGE = "dealing"               # "dealing" | "setup" | None
+
+# Higher-timeframe structure bias (1H / 4H): recorded on every setup; gate off
+# until longer data shows it helps (no benefit seen on Jan–Apr 2026).
+HTF_GATE = None                    # "1h" | "4h" | None

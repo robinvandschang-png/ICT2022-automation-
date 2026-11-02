@@ -229,3 +229,27 @@ starting points; final values come from the backtest, not from eyeballing.
 - Reading: nothing is statistically conclusive after costs. Equity indices
   are the strongest class; the kill-zone gate still shows no benefit; costs
   call for a minimum-risk (maximum cost) rule.
+
+## Hard part #6 — Higher-timeframe bias (built, gate off)
+- Definition: 5m data resampled to 1H and 4H candles (4H aligned to the CME
+  day: 18, 22, 02, 06, 10, 14 ET); the same swing + structure detectors run
+  on them; bias = direction of the latest HTF structure break. An HTF candle
+  is used only once closed (tested: no lookahead). Code: `ict/htf.py`.
+- Every setup records bias_1h and bias_4h; `ModelParams(htf_gate="1h"|"4h")`
+  trades only with the bias. `config.HTF_GATE = None` for now.
+- Test, 36 markets, same trades split by bias (net of costs; differences
+  with a 95% range from resampling days):
+
+  | Target | Bias | With bias | Against / none | Difference range |
+  |---|---|---|---|---|
+  | Pool (>= 2R) | 1H | 60 trades, +0.06R | 99, +0.17R | -0.67 to +0.43 |
+  | Pool (>= 2R) | 4H | 77, +0.11R | 82, +0.15R | -0.59 to +0.54 |
+  | Pool (>= 2R) | 1H and 4H agree | 38, +0.01R | 121, +0.17R | -0.76 to +0.46 |
+  | Fixed 1R | 1H | 89, +0.11R | 187, +0.04R | -0.19 to +0.31 |
+  | Fixed 1R | 4H | 127, +0.08R | 149, +0.05R | -0.18 to +0.24 |
+  | Fixed 1R | 1H and 4H agree | 58, +0.16R | 218, +0.04R | -0.17 to +0.39 |
+
+- Reading: no consistent effect — the sign flips with the target rule and
+  every range spans zero. Not evidence against bias in general; evidence
+  that this structure-based bias adds nothing visible on 3 months.
+- Not built: a daily-draw bias (e.g. which of PDH / PDL is the day's draw).

@@ -11,11 +11,11 @@
   trading day. Conservative on ambiguity: a candle that touches both the stop
   and the target counts as a stop; the fill candle cannot also hit the target.
 
-Not yet included: costs, a higher-timeframe draw filter.
+Costs are applied in the research tools (ict/contracts.py). A daily-draw bias is not built.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 import pandas as pd
@@ -37,6 +37,16 @@ class Context:
     pools: pd.DataFrame    # with taken_bar
     takes: pd.DataFrame    # with sweep classification
     day: np.ndarray        # trading-day label per bar
+    cache: dict = field(default_factory=dict)   # lazily computed extras (e.g. HTF bias)
+
+
+def get_htf_bias(ctx: Context, rule: str) -> np.ndarray:
+    """'up' / 'down' / '' per bar from the higher timeframe `rule` (cached)."""
+    key = f"htf_bias_{rule}"
+    if key not in ctx.cache:
+        from ict.htf import htf_bias
+        ctx.cache[key] = htf_bias(ctx.df, rule).to_numpy()
+    return ctx.cache[key]
 
 
 def build_context(df: pd.DataFrame, swing_params: SwingParams = SwingParams(),
@@ -154,20 +164,22 @@ class ModelParams:
     fixed_rr: float = 1.0                # used when target_rule == "fixed"
     pd_gate: str | None = "dealing"      # "dealing" | "setup" | None (off)
     killzones: tuple | None = None       # e.g. ("London", "NY AM"); None = all hours
+    htf_gate: str | None = None          # "1h" | "4h": trade only with that timeframe's bias
 
     @classmethod
     def from_config(cls) -> "ModelParams":
         from ict import config
         return cls(entry=config.ENTRY, wait=config.ENTRY_WAIT_CANDLES, target_rule=config.TARGET_RULE,
                    min_rr=config.MIN_RR, pd_gate=config.PD_RANGE,
-                   killzones=tuple(config.SCREENER_KILLZONES))
+                   killzones=tuple(config.SCREENER_KILLZONES), htf_gate=config.HTF_GATE)
 
 
 def build_trades(ctx: Context, params: ModelParams = ModelParams(), seqs: pd.DataFrame | None = None) -> pd.DataFrame:
     """One row per sweep -> CHoCH sequence: which gate stopped it, or the simulated trade.
 
     status: "outside kill zones" | "no array" | "entry beyond stop" | "wrong half" |
-            "no target" | "order"
+            "against HTF bias" | "no target" | "order"
+    Every row records the 1H and 4H bias at the setup bar (bias_1h, bias_4h).
     """
     from ict.draw import find_target, pools_as_of
     from ict.premium_discount import dealing_range, in_correct_half, position, setup_range
@@ -175,10 +187,12 @@ def build_trades(ctx: Context, params: ModelParams = ModelParams(), seqs: pd.Dat
     if seqs is None:
         seqs = sweep_choch_sequences(ctx)
     close = ctx.df["close"].to_numpy()
+    bias = {r: get_htf_bias(ctx, r) for r in ("1h", "4h")}
     rows = []
     for seq in seqs.itertuples(index=False):
         row = {"sweep_bar": seq.sweep_bar, "time": ctx.df.index[seq.sweep_bar], "swept": seq.swept,
-               "direction": seq.direction, "killzone": seq.killzone, "stop": seq.stop}
+               "direction": seq.direction, "killzone": seq.killzone, "stop": seq.stop,
+               "bias_1h": bias["1h"][seq.setup_bar], "bias_4h": bias["4h"][seq.setup_bar]}
         if params.killzones is not None and seq.killzone not in params.killzones:
             rows.append({**row, "status": "outside kill zones"})
             continue
@@ -201,6 +215,10 @@ def build_trades(ctx: Context, params: ModelParams = ModelParams(), seqs: pd.Dat
         pos = {"dealing": pos_dealing, "setup": pos_setup}.get(params.pd_gate)
         if params.pd_gate and (np.isnan(pos) or not in_correct_half(pos, seq.direction)):
             rows.append({**row, "status": "wrong half"})
+            continue
+
+        if params.htf_gate and row[f"bias_{params.htf_gate}"] != seq.direction:
+            rows.append({**row, "status": "against HTF bias"})
             continue
 
         risk = abs(entry - seq.stop)

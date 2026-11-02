@@ -40,6 +40,7 @@ half. Stop beyond the sweep, target the draw on liquidity, minimum R:R.
 | Premium / discount, dealing range | `ict/premium_discount.py` | Done — gate: entry in discount (longs) / premium (shorts) of the bigger dealing range |
 | Time windows (kill zones, Silver Bullet) | `ict/timewindows.py` | Built — every setup records its kill zone; gate available, off until the backtest shows it helps |
 | Model assembly (gated sequence) | `ict/model.py` | Done (v1) — all gates in one pipeline (`build_trades`); run with `tools/run_model.py` |
+| Higher-timeframe bias (1H / 4H structure) | `ict/htf.py` | Built — recorded on every setup; gate off (no consistent benefit on Jan–Apr 2026) |
 | Multi-market research run (36 CME futures, same rules) | `tools/run_markets.py` | Done — results net of costs in `docs/decisions.md` |
 | Backtest (results in R, out-of-sample) | — | Next — needs longer history |
 | Screener and alerts | — | Planned |
@@ -79,6 +80,7 @@ ict/
   config.py        defaults decided so far (market, entry, target rule, windows)
   premium_discount.py  entry position in the setup move or the dealing range
   contracts.py     tick size / tick value per contract; trading costs in R
+  htf.py           1H / 4H candles from 5m, structure bias per 5m bar (closed candles only)
 tools/
   plot_swings.py     chart raw pivots vs swing tiers
   plot_structure.py  chart structure breaks with displacement verdicts

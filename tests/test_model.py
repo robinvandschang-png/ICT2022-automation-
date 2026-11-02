@@ -51,3 +51,12 @@ def test_from_config_matches_decisions():
     p = ModelParams.from_config()
     assert p.entry == "FVG edge (latest)" and p.target_rule == "strict" and p.min_rr == 2.0
     assert p.pd_gate == "dealing" and p.killzones == ("London", "NY AM")
+
+
+@pytest.mark.parametrize("rule", ["1h", "4h"])
+def test_htf_gate_only_passes_trades_with_bias(ctx, rule):
+    t = build_trades(ctx, ModelParams(pd_gate=None, htf_gate=rule))
+    o = t[t["status"] == "order"]
+    assert (o[f"bias_{rule}"] == o["direction"]).all()
+    a = t[t["status"] == "against HTF bias"]
+    assert (a[f"bias_{rule}"] != a["direction"]).all()

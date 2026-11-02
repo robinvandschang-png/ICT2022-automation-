@@ -79,6 +79,36 @@ def run_market(args) -> dict:
     return out
 
 
+def bias_report(f: pd.DataFrame, rng, n_boot: int = 5000) -> None:
+    """Same trades split by whether they went with the 1H / 4H bias (gate off when the trades were made)."""
+    print("\nBy higher-timeframe bias at the setup (net of costs; 95% range of the with-minus-against "
+          "difference from resampling days):")
+    rows = []
+    for v in ["v1 all hours", "v1 all hours, 1R target"]:
+        g = f[f["variant"] == v]
+        for rule in ["1h", "4h", "both"]:
+            if rule == "both":
+                with_ = (g["bias_1h"] == g["direction"]) & (g["bias_4h"] == g["direction"])
+            else:
+                with_ = g[f"bias_{rule}"] == g["direction"]
+            a, b = g[with_], g[~with_]
+            days = sorted(set(g["day"]))
+            idx = {d: i for i, d in enumerate(days)}
+            def by_day(x):
+                s = np.zeros(len(days)); c = np.zeros(len(days))
+                np.add.at(s, x["day"].map(idx).to_numpy(), x["net_r"].to_numpy())
+                np.add.at(c, x["day"].map(idx).to_numpy(), 1)
+                return s, c
+            sa, ca = by_day(a); sb, cb = by_day(b)
+            pick = rng.integers(0, len(days), (n_boot, len(days)))
+            diff = sa[pick].sum(1) / np.maximum(ca[pick].sum(1), 1) - sb[pick].sum(1) / np.maximum(cb[pick].sum(1), 1)
+            lo, hi = np.percentile(diff, [2.5, 97.5])
+            rows.append({"variant": v, "bias": rule, "with: trades": len(a), "with: avg R net": round(a["net_r"].mean(), 2),
+                         "against/none: trades": len(b), "against/none: avg R net": round(b["net_r"].mean(), 2),
+                         "difference 95% range": f"{lo:+.2f} to {hi:+.2f}", "with better in": f"{(diff > 0).mean() * 100:.0f}%"})
+    print(pd.DataFrame(rows).set_index(["variant", "bias"]).to_string())
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", default="data/cme")
@@ -146,6 +176,7 @@ def net_report(trades: pd.DataFrame, out: str, commission: float = 4.5, micro_co
                      "avg cost R": round(g["cost_r"].mean(), 2), "avg R net": round(g["net_r"].mean(), 2),
                      "net 95% range": f"{lo:+.2f} to {hi:+.2f}", "share > 0": f"{(means > 0).mean() * 100:.0f}%"})
     print(pd.DataFrame(rows).set_index("variant").to_string())
+    bias_report(f, rng, n_boot)
     by = f.assign(cls=f["sym"].map(ASSET_CLASS)).groupby(["variant", "cls"]).agg(
         trades=("net_r", "size"), avg_cost_R=("cost_r", "mean"), net_R=("net_r", "sum")).round(2)
     print("\nNet R by asset class:")

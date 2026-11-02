@@ -104,3 +104,28 @@ starting points; final values come from the backtest, not from eyeballing.
   (Jan–Apr 2026). Longer history (e.g. Databento NQ 1m from 2023) later.
 - Data limit: 3 months of 5m data gives ~44 sequences. The backtest needs
   at least 2 years of NQ 5m history.
+
+## PD arrays — FVG and order block (built, default entry open)
+- FVG: 3-candle gap in the leg's direction, middle candle inside the
+  displacement leg, at least 0.3 yardsticks. Near edge = first price met on a
+  retrace; CE = midpoint; known one candle after the middle candle.
+- Order block: last opposing candle before the leg's first large-bodied
+  candle (searched from 3 candles before the leg start). Near edge = its high
+  (bullish) / low (bearish).
+- Entry comparison, NOT a backtest (`tools/entry_check.py`; same 44 NQ 5m
+  sequences, stop beyond the sweep extreme, strict target >= 2R, limit
+  orders wait 12 candles, no session filter, no costs):
+
+  | Entry | Qualify (target >= 2R) | Filled | Target / stop | Total R |
+  |---|---|---|---|---|
+  | CHoCH close | 5 | 5 | 2 / 3 | +1.4 |
+  | FVG near edge (latest gap) | 12 | 9 | 5 / 4 | +9.5 |
+  | FVG midpoint (latest gap) | 15 | 6 | 2 / 4 | +2.7 |
+  | FVG near edge (first gap) | 16 | 8 | 4 / 4 | +7.0 |
+  | Order block near edge | 35 | 13 | 4 / 8 (+1 open) | +10.4 |
+
+- Reading: retrace entries are what make the strict 2R rule workable
+  (5 -> 12–35 qualifying setups). Deeper entries qualify more often but fill
+  less (order block 13/35, FVG midpoint 6/15 vs FVG near edge 9/12).
+  5–13 filled trades per option: one trade changes the ranking, so no
+  conclusion on which entry is best or whether any has an edge.

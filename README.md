@@ -34,10 +34,10 @@ half. Stop beyond the sweep, target the draw on liquidity, minimum R:R.
 | 3. Displacement | `ict/displacement.py` | Built — thresholds provisional, FVG requirement open |
 | 4. Liquidity pools and sweeps | `ict/liquidity.py` | Done — sweep rule provisional (back inside within 3 candles, ≤ 1 yardstick deep); equal highs/lows pending |
 | 2. Draw on liquidity | `ict/draw.py` | Done (v1) — strict: target = nearest untapped opposite pool, trade only if ≥ 2R away; higher-timeframe draw later as a tested filter |
-| PD arrays: FVG, order block (entry) | — | Next |
+| PD arrays: FVG, order block (entry) | `ict/arrays.py` | Built — default entry option still open (FVG edge / FVG midpoint / order block) |
 | Premium / discount, dealing range | — | Planned |
-| Time windows (kill zones, Silver Bullet) | — | Planned |
-| Model assembly (gated sequence) | — | Planned |
+| Time windows (kill zones, Silver Bullet) | — | Next |
+| Model assembly (gated sequence) | `ict/model.py` | In progress — sweep → CHoCH sequences and trade simulation done |
 | Backtest (results in R, out-of-sample) | — | Planned |
 | Screener and alerts | — | Planned |
 
@@ -70,11 +70,14 @@ ict/
   liquidity.py     pools (PDH/PDL, PWH/PWL, Asia/London H/L, tier-2 swings),
                    when each is taken, facts about the take, sweep rule
   draw.py          untapped pools at a bar; target = nearest opposite pool (strict, >= min R)
+  arrays.py        FVGs and the order block left by a displacement leg
+  model.py         context build, sweep -> CHoCH sequences, trade simulation
 tools/
   plot_swings.py     chart raw pivots vs swing tiers
   plot_structure.py  chart structure breaks with displacement verdicts
   sweep_gallery.py   blind gallery of real pool takes for hand labelling
   draw_check.py      sanity check of target selection on sweep + CHoCH sequences
+  entry_check.py     compare entry options (FVG edge / CE / order block) on the sequences
 tests/             unit tests incl. no-lookahead checks
 docs/decisions.md  design decision log
 ```

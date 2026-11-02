@@ -32,8 +32,8 @@ half. Stop beyond the sweep, target the draw on liquidity, minimum R:R.
 | 1. Significant swings (tiers 1–3) | `ict/swings.py` | Done — parameters provisional |
 | Structure breaks (raw BOS/CHoCH event) | `ict/structure.py` | Done — BOS vs CHoCH labelling pending |
 | 3. Displacement | `ict/displacement.py` | Built — thresholds provisional, FVG requirement open |
-| 4. Liquidity pools and sweeps | `ict/liquidity.py` | In progress — pools and take events done; sweep-vs-run rule being calibrated on hand labels |
-| 2. Draw on liquidity | — | Planned |
+| 4. Liquidity pools and sweeps | `ict/liquidity.py` | Done — sweep rule provisional (back inside within 3 candles, ≤ 1 yardstick deep); equal highs/lows pending |
+| 2. Draw on liquidity | — | Next |
 | PD arrays: FVG, order block | — | Planned |
 | Premium / discount, dealing range | — | Planned |
 | Time windows (kill zones, Silver Bullet) | — | Planned |

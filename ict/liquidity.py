@@ -129,7 +129,7 @@ def take_features(df: pd.DataFrame, takes: pd.DataFrame, vol: pd.Series, max_bar
     close = df["close"].to_numpy()
     v = vol.to_numpy()
     t = takes[takes["taken_bar"].notna()].copy()
-    closed, reclaim, depth = [], [], []
+    closed, reclaim, depth, extreme = [], [], [], []
     for p in t.itertuples(index=False):
         i = int(p.taken_bar)
         j_end = min(len(df), i + max_bars + 1)
@@ -143,8 +143,24 @@ def take_features(df: pd.DataFrame, takes: pd.DataFrame, vol: pd.Series, max_bar
         closed.append(not inside[0])
         reclaim.append(k)
         upto = (k + 1) if k is not None else len(beyond)
-        depth.append(float(beyond[:upto].max() / v[i]))
+        far = float(beyond[:upto].max())
+        depth.append(far / v[i])
+        extreme.append(p.price + far if p.side == BUY else p.price - far)
     t["closed_beyond"] = closed
     t["reclaim_bars"] = pd.array(reclaim, dtype="Int64")
     t["depth"] = depth
+    t["extreme"] = extreme  # furthest price beyond the level (where a stop would go)
     return t.reset_index(drop=True)
+
+
+def classify_takes(features: pd.DataFrame, max_reclaim: int = 3, max_depth: float = 1.0) -> pd.DataFrame:
+    """Sweep = back inside within `max_reclaim` candles and no deeper than `max_depth` yardsticks.
+
+    A sweep is only a candidate: the model still needs a CHoCH on displacement
+    afterwards. `decided_at` is the bar by which the verdict is known.
+    """
+    f = features.copy()
+    rb = f["reclaim_bars"]
+    f["sweep"] = (rb.notna() & (rb <= max_reclaim) & (f["depth"] <= max_depth)).fillna(False).astype(bool)
+    f["decided_at"] = (f["taken_bar"] + rb.where(f["sweep"], max_reclaim)).astype("Int64")
+    return f

@@ -41,7 +41,7 @@ starting points; final values come from the backtest, not from eyeballing.
   the backtest compares both.
 - NQ (Jan–Apr 2026): ~26–29% of breaks pass on 1m, 5m and 15m alike.
 
-## Concept 4 — Liquidity pools and sweeps (in progress)
+## Concept 4 — Liquidity pools and sweeps (done, rule provisional)
 - Pools (provisional set):
   - PDH / PDL, PWH / PWL: valid until taken. CME trading day starts 18:00 ET.
   - Asia (20:00–24:00 ET) and London (02:00–05:00 ET) high / low: valid for
@@ -70,6 +70,10 @@ starting points; final values come from the backtest, not from eyeballing.
   of 1–3-candle reclaims, 0% of 4–12-candle reclaims (n=12), 2% of takes not
   reclaimed within 12 (n=45). 1–3-candle reclaims deeper than 1 yardstick:
   0 of 4.
-- Working rule (pending batch 2): sweep candidate = back inside within 3
-  candles and no deeper than ~1 yardstick; confirmation comes from the CHoCH
-  gate. Batch 2 targets the boundary (depth 0.5–2, reclaim 1–6).
+- Adopted rule (`classify_takes`): sweep candidate = back inside within 3
+  candles (5m: 15 min) and no deeper than 1 yardstick beyond the level;
+  confirmation comes from the CHoCH gate. The furthest price beyond the level
+  is stored as `extreme` (stop placement).
+- Provisional: the depth cap rests on few cases. Batch 2 (boundary cases,
+  seed 11) was generated but left unlabelled when we moved on; the backtest
+  will compare max reclaim 1–3 and depth caps 0.75–1.5.

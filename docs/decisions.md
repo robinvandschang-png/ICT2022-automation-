@@ -168,3 +168,20 @@ starting points; final values come from the backtest, not from eyeballing.
 - Robin trades London open and NY AM most of the time (2026-11-02): the live
   screener alerts only in London + NY AM (`ict/config.py`). In this sample
   those two windows had 14 sequences, 4 wins / 4 losses at 1R, +0.5R.
+
+## Premium / discount (built, range definition pending)
+- Robin's rule (2026-11-02): a long's entry must be in discount of the
+  dealing range, a short's in premium.
+- Two range definitions measured (`ict/premium_discount.py`, `tools/pd_check.py`):
+  - Setup move: sweep extreme -> furthest price reached since.
+  - Dealing range: latest known tier-2 swing high and low, widened to the
+    sweep extreme.
+- 35 setups with an FVG near-edge entry (latest gap), NQ 5m Feb–Apr 2026:
+  - Setup move: the entry sits at a median 71% of the move from the trade's
+    side — in the wrong half for 31 of 35. This range is nearly incompatible
+    with the latest-FVG entry; it would need a deeper FVG or the order block.
+  - Dealing range: median 48%; 18 correct half / 17 wrong half.
+    Correct half: 1R 10 W / 4 L, +6.0R; pool target 8 fills, +10.5R.
+    Wrong half: 1R 7 W / 5 L, +2.0R; pool target 1 fill, -1.0R.
+- Reading: with the dealing range, the rule is compatible with the entry
+  and points the right way (tiny sample).

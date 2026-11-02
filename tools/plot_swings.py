@@ -16,7 +16,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from ict.swings import HIGH, SwingParams, detect_swings, raw_pivots
+from ict.data import load_csv
+from ict.swings import SwingParams, detect_swings, raw_pivots
 
 TIER_STYLE = {
     1: dict(s=36, facecolor="none", edgecolor="#378ADD", linewidths=1.4, label="Tier 1 short-term"),
@@ -51,8 +52,10 @@ def plot_swings(df: pd.DataFrame, params: SwingParams, start=None, end=None,
     swings = detect_swings(df, params)
     pivots = raw_pivots(df, params.pivot_bars)
 
-    lo = 0 if start is None else df.index.searchsorted(pd.Timestamp(start))
-    hi = len(df) if end is None else df.index.searchsorted(pd.Timestamp(end))
+    tz = params.tz if df.index.tz is not None else None  # window times are exchange time
+    local = df.index if tz is None else df.index.tz_convert(tz)
+    lo = 0 if start is None else local.searchsorted(pd.Timestamp(start, tz=tz))
+    hi = len(df) if end is None else local.searchsorted(pd.Timestamp(end, tz=tz))
 
     fig, ax = plt.subplots(figsize=(14, 6.5), dpi=130)
     draw_candles(ax, df, lo, hi)
@@ -70,7 +73,7 @@ def plot_swings(df: pd.DataFrame, params: SwingParams, start=None, end=None,
         style["label"] = f"{style['label']} ({len(t)})"
         ax.scatter(t["bar"], t["price"], zorder=4 + tier, **style)
 
-    time_axis(ax, df, lo, hi)
+    time_axis(ax, df, lo, hi, tz=tz)
     ax.grid(alpha=0.15)
     ax.legend(loc="upper left", fontsize=9, frameon=False)
     ax.set_title(title or f"Swings  (pivot_bars={params.pivot_bars}, min_move_atr={params.min_move_atr})",
@@ -90,8 +93,7 @@ def main() -> None:
     ap.add_argument("--n", type=int, default=2)
     ap.add_argument("--out", default="swings.png")
     a = ap.parse_args()
-    df = pd.read_csv(a.csv, index_col=0, parse_dates=True)
-    df.columns = [c.lower() for c in df.columns]
+    df = load_csv(a.csv)  # tz-aware, so the time-of-day yardstick uses exchange time
     print(plot_swings(df, SwingParams(pivot_bars=a.n, min_move_atr=a.k), a.start, a.end, a.out))
 
 

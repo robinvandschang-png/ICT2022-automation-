@@ -43,7 +43,7 @@ half. Stop beyond the sweep, target the draw on liquidity, minimum R:R.
 | Higher-timeframe bias (1H / 4H structure) | `ict/htf.py` | Done — screener trades only with the 1H trend (Robin's practice); research compares with / without |
 | Multi-market research run (36 CME futures, same rules) | `tools/run_markets.py` | Done — results net of costs in `docs/decisions.md` |
 | Backtest (results in R, out-of-sample) | — | Next — needs longer history |
-| Live screener and alerts | `ict/live/` | Built (v0) — free delayed Yahoo feed, console + Telegram alerts, replay mode; live signals = backtest orders (tested) |
+| Live screener and alerts | `ict/live/` | Built (v0) — Interactive Brokers real-time feed (default) or free delayed Yahoo feed, console + Telegram alerts, replay mode; live signals = backtest orders (tested) |
 
 Every definition, threshold and the reason behind it is logged in
 [`docs/decisions.md`](docs/decisions.md).
@@ -82,7 +82,8 @@ ict/
   contracts.py     tick size / tick value per contract; trading costs in R
   htf.py           1H / 4H candles from 5m, structure bias per 5m bar (closed candles only)
   live/signals.py  scan the latest closed candles -> signals (entry, stop, target, size, costs)
-  live/feeds.py    replay (CSV) and Yahoo Finance candle feeds, closed candles only
+  live/feeds.py    replay (CSV), Interactive Brokers and Yahoo candle feeds, closed candles only
+  live/check_ibkr.py  connection check for Interactive Brokers
   live/notify.py   console and Telegram alerts
   live/screener.py the 5-minute loop during the kill zones; replay mode
 tools/
@@ -142,6 +143,28 @@ python -m ict.live.screener                # Ctrl+C to stop
   time an alert arrives. Use it for paper-trading the signals; plug in a
   real-time feed (broker or data vendor) before trading them live — a feed is
   one class with a `candles(sym, now)` method (`ict/live/feeds.py`).
+### Real-time data via Interactive Brokers (default feed)
+
+The screener reads candles from TWS or IB Gateway running on the same
+computer. It connects read-only and never places orders; your IB login stays
+in TWS / Gateway.
+
+1. **Market data:** in IBKR Client Portal → Settings → Market Data
+   Subscriptions, subscribe to the *US Securities Snapshot and Futures Value
+   Bundle* (covers CME, CBOT, NYMEX, COMEX; non-professional). For a paper
+   account, also enable sharing your live market data with it.
+2. **Run TWS or IB Gateway** and log in.
+3. **Enable the API:** Configure → API → Settings → tick *Enable ActiveX and
+   Socket Clients*, keep *Read-Only API* ticked, note the socket port
+   (TWS 7497 paper / 7496 live; IB Gateway 4002 paper / 4001 live), allow
+   127.0.0.1.
+4. `pip install -r requirements.txt` (includes `ib_async`; Python 3.10+).
+5. Check the connection: `python -m ict.live.check_ibkr --port 7497`
+   (every market should show a last candle a few minutes old).
+6. Run: `python -m ict.live.screener --port 7497`
+
+Use `--feed yahoo` for the free, delayed feed instead.
+
 - Replay any past period from local CSVs, exactly as it would have alerted:
   `python -m ict.live.screener --replay data/cme --start "2026-04-10 02:00" --end "2026-04-10 06:20"`
 

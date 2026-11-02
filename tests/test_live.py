@@ -58,3 +58,41 @@ def test_closed_only_drops_forming_candle():
     idx = pd.date_range("2026-04-10 08:00", periods=3, freq="5min", tz="UTC")
     df = pd.DataFrame({"close": [1, 2, 3]}, index=idx)
     assert len(closed_only(df, pd.Timestamp("2026-04-10 08:12", tz="UTC"))) == 2
+
+
+class FakeIB:
+    """Stands in for ib_async.IB: serves 5m bars from a frame, as of a moving 'now'."""
+
+    def __init__(self, df):
+        self.df, self.now, self.requests = df, None, []
+
+    def qualifyContracts(self, *c):
+        return c
+
+    def reqHistoricalData(self, contract, endDateTime, durationStr, barSizeSetting, whatToShow, useRTH, formatDate):
+        from types import SimpleNamespace
+        self.requests.append(durationStr)
+        days = int(durationStr.split()[0])
+        part = self.df[(self.df.index >= self.now - pd.Timedelta(days=days)) & (self.df.index < self.now)]
+        return [SimpleNamespace(date=t.to_pydatetime(), open=r.open, high=r.high, low=r.low, close=r.close,
+                                volume=r.volume) for t, r in part.iterrows()]
+
+
+def test_ibkr_feed_loads_history_then_merges_updates(ctx, monkeypatch):  # noqa: F811
+    import sys
+    from types import SimpleNamespace
+    from ict.live.feeds import IB_CONTRACTS, IBKRFeed
+    monkeypatch.setitem(sys.modules, "ib_async", SimpleNamespace(ContFuture=lambda **k: SimpleNamespace(**k)))
+    df = ctx.df.assign(volume=1.0)
+    ib = FakeIB(df)
+    feed = IBKRFeed(["NQ"], client=ib, days=10)
+    ib.now = df.index[4000] + pd.Timedelta("2min")              # mid-candle: last candle still forming
+    first = feed.candles("NQ", ib.now)
+    assert first.index[-1] == df.index[3999] and ib.requests == ["10 D"]
+    ib.now = df.index[4100] + pd.Timedelta("1min")
+    later = feed.candles("NQ", ib.now)
+    assert ib.requests[-1] == "2 D"
+    expected = df[(df.index >= later.index[0]) & (df.index <= df.index[4099])]
+    pd.testing.assert_frame_equal(later[["open", "high", "low", "close"]], expected[["open", "high", "low", "close"]],
+                                  check_freq=False)
+    assert set(IB_CONTRACTS) >= {"NQ", "ES", "YM", "RTY", "CL", "GC", "6E", "6B", "6J", "ZN", "ZB"}

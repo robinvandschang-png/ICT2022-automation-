@@ -25,7 +25,13 @@ PD_RANGE = "dealing"               # "dealing" | "setup" | None
 HTF_GATE = "1h"                    # "1h" | "4h" | None
 
 # --- Live screener -------------------------------------------------------------
-# Markets to scan: symbol -> Yahoo Finance ticker (free feed, ~10+ min delayed).
+SCREENER_FEED = "ibkr"             # "ibkr" (real-time via TWS / IB Gateway) | "yahoo" (free, delayed)
+IBKR_HOST = "127.0.0.1"
+IBKR_PORT = 7497                   # TWS: 7497 paper / 7496 live; IB Gateway: 4002 paper / 4001 live
+IBKR_CLIENT_ID = 17
+
+# Markets to scan: symbol -> Yahoo Finance ticker (used by the Yahoo feed;
+# the IBKR feed maps the same symbols in ict/live/feeds.py:IB_CONTRACTS).
 SCREENER_MARKETS = {
     "NQ": "NQ=F", "ES": "ES=F", "YM": "YM=F", "RTY": "RTY=F",
     "CL": "CL=F", "GC": "GC=F",

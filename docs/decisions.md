@@ -277,3 +277,10 @@ starting points; final values come from the backtest, not from eyeballing.
 - Data: free Yahoo Finance via yfinance, delayed >= 10 minutes (CME rule for
   free data). Fine for paper alerts; a real-time feed is needed to trade the
   5m entries live. Runs on Robin's machine; this workspace cannot reach it.
+- Robin has an Interactive Brokers account (2026-11-02): IBKR is the default
+  screener feed (`ict/live/feeds.py:IBKRFeed`, via `ib_async`, read-only).
+  It reads continuous front-month 5m candles from TWS / IB Gateway on
+  Robin's computer: 30 days of history at start, then the last 2 days each
+  cycle (one request per market per 5 minutes). `python -m
+  ict.live.check_ibkr` verifies contracts, candle counts and data delay.
+  Needs IB's non-professional futures data bundle for real-time candles.

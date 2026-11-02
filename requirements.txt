@@ -3,3 +3,4 @@ numpy>=1.26
 matplotlib>=3.8
 pytest>=8
 yfinance>=0.2  # live screener: free, delayed Yahoo Finance data
+ib_async>=1.0  # live screener: Interactive Brokers (needs Python 3.10+)

@@ -1,8 +1,13 @@
 """The live screener: every 5 minutes, scan each market and alert on new signals.
 
-Live (free Yahoo data, ~10+ min delayed):
+Live with Interactive Brokers (TWS or IB Gateway running and logged in, API enabled):
+    pip install ib_async
+    python -m ict.live.screener                    # feed, host and port from ict/config.py
+    python -m ict.live.screener --feed ibkr --port 4001
+
+Live with free Yahoo data (~10+ min delayed):
     pip install yfinance
-    python -m ict.live.screener
+    python -m ict.live.screener --feed yahoo
 
 Replay a past period with local CSVs (no network):
     python -m ict.live.screener --replay data/cme --start "2026-04-10 01:30" --end "2026-04-10 12:30"
@@ -24,7 +29,7 @@ import traceback
 import pandas as pd
 
 from ict import config
-from ict.live.feeds import ReplayFeed, YahooFeed
+from ict.live.feeds import IBKRFeed, ReplayFeed, YahooFeed
 from ict.live.notify import from_env
 from ict.live.signals import format_signal, scan
 from ict.model import ModelParams
@@ -89,6 +94,10 @@ def main() -> None:
     ap.add_argument("--start", help="replay start, ET (e.g. '2026-04-10 01:30')")
     ap.add_argument("--end", help="replay end, ET")
     ap.add_argument("--markets", nargs="*", help="symbols to scan (default: config.SCREENER_MARKETS)")
+    ap.add_argument("--feed", choices=["ibkr", "yahoo"], default=config.SCREENER_FEED)
+    ap.add_argument("--host", default=config.IBKR_HOST)
+    ap.add_argument("--port", type=int, default=config.IBKR_PORT)
+    ap.add_argument("--client-id", type=int, default=config.IBKR_CLIENT_ID)
     ap.add_argument("--state", default="out/screener_state.json")
     ap.add_argument("--log", default="out/signals.jsonl")
     a = ap.parse_args()
@@ -113,9 +122,13 @@ def main() -> None:
         print(f"Replay done: {n} signals.")
         return
 
-    feed = YahooFeed(config.SCREENER_MARKETS)
+    if a.feed == "ibkr":
+        feed = IBKRFeed(markets, a.host, a.port, a.client_id)
+    else:
+        feed = YahooFeed(config.SCREENER_MARKETS)
     state = State(a.state)
-    print(f"Screener running on {len(markets)} markets; kill zones {config.SCREENER_KILLZONES}. Ctrl+C to stop.")
+    print(f"Screener running on {len(markets)} markets via {a.feed}; kill zones {config.SCREENER_KILLZONES}. "
+          "Ctrl+C to stop.")
     while True:
         now = pd.Timestamp.now(tz="UTC")
         if scanning_now(now):

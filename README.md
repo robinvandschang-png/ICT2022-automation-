@@ -29,7 +29,7 @@ half. Stop beyond the sweep, target the draw on liquidity, minimum R:R.
 | 1. Significant swings (tiers 1–3) | `ict/swings.py` | Done — parameters provisional |
 | Structure breaks (raw BOS/CHoCH event) | `ict/structure.py` | Done — BOS vs CHoCH labelling pending |
 | 3. Displacement | `ict/displacement.py` | Built — thresholds provisional, FVG requirement open |
-| 4. Liquidity pools and sweeps | — | Next |
+| 4. Liquidity pools and sweeps | `ict/liquidity.py` | In progress — pools and take events done; sweep-vs-run rule being calibrated on hand labels |
 | 2. Draw on liquidity | — | Planned |
 | PD arrays: FVG, order block | — | Planned |
 | Premium / discount, dealing range | — | Planned |
@@ -64,9 +64,12 @@ ict/
   swings.py        raw pivots -> tier 1 (yardstick filter) -> tiers 2/3 (nesting)
   structure.py     first close beyond the latest tier-1 swing, with leg start
   displacement.py  leg size, largest body, overlap, FVGs; displacement gates
+  liquidity.py     pools (PDH/PDL, PWH/PWL, Asia/London H/L, tier-2 swings),
+                   when each is taken, and facts about the take
 tools/
   plot_swings.py     chart raw pivots vs swing tiers
   plot_structure.py  chart structure breaks with displacement verdicts
+  sweep_gallery.py   blind gallery of real pool takes for hand labelling
 tests/             unit tests incl. no-lookahead checks
 docs/decisions.md  design decision log
 ```

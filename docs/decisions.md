@@ -34,7 +34,20 @@ starting points; final values come from the backtest, not from eyeballing.
   the backtest compares both.
 - NQ (Jan–Apr 2026): ~26–29% of breaks pass on 1m, 5m and 15m alike.
 
-## Open
-- Concept 4 — sweep vs run: the book's single-candle close test vs "reclaims
-  the level within N candles" (NQ 2 Apr 2026 09:30 ET closed below the low,
-  then reversed — a sweep by intent, a run by the close test).
+## Concept 4 — Liquidity pools and sweeps (in progress)
+- Pools (provisional set):
+  - PDH / PDL, PWH / PWL: valid until taken. CME trading day starts 18:00 ET.
+  - Asia (20:00–24:00 ET) and London (02:00–05:00 ET) high / low: valid for
+    the rest of that trading day.
+  - Tier-2 swing highs / lows: valid from promotion until taken.
+  - Equal highs / lows: not yet included.
+- Taken = first candle after the pool is active that trades through it.
+- Facts recorded per take: closed beyond the level?, candles until the first
+  close back inside, deepest trade beyond the level (yardsticks).
+- Sweep vs run: candidate rules are (A) the book's single-candle close test,
+  (B) back inside within N candles, (C) B plus a depth cap. Robin called NQ
+  2 Apr 2026 09:30 ET a sweep although that candle closed beyond the low
+  (fails A). Being calibrated against Robin's blind labels of 12 NQ 5m takes
+  (`tools/sweep_gallery.py`, seed 7).
+- NQ 5m London + NY hours (Feb–Apr 2026): of 197 takes, 93 closed back on the
+  taking candle, 47 within 1–3 candles, 12 within 4–12, 45 not within 12.

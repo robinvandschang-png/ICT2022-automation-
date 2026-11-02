@@ -23,11 +23,18 @@ def test_pools_as_of():
     assert "Asia H" not in set(pools_as_of(pools(), 31)["name"])  # expired
 
 
-def test_nearest_pool_beyond_min_rr_and_skipped_count():
+def test_skip_closer_variant_counts_skipped_pools():
     now = pools_as_of(pools(), 20)
-    t = find_target(now, UP, entry=100.0, stop=97.0, min_rr=2.0)   # risk 3
+    t = find_target(now, UP, entry=100.0, stop=97.0, min_rr=2.0, skip_closer=True)   # risk 3
     assert t["target_name"] == "PDH" and t["target_rr"] == 4.0
     assert t["pools_between"] == 1 and round(t["nearest_rr"], 2) == 1.67  # Asia H skipped
+
+
+def test_strict_uses_nearest_pool_only():
+    now = pools_as_of(pools(), 20)
+    assert find_target(now, UP, entry=100.0, stop=97.0) is None      # Asia H only 1.67R away
+    t = find_target(now, UP, entry=100.0, stop=98.0)                 # risk 2 -> Asia H 2.5R
+    assert t["target_name"] == "Asia H" and t["target_rr"] == 2.5 and t["pools_between"] == 0
 
 
 def test_no_target_means_no_trade():

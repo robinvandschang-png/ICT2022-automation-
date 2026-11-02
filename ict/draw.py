@@ -1,10 +1,14 @@
 """Draw on liquidity, v1: the target comes from the setup.
 
 The setup decides the direction (e.g. sell-side sweep + bullish CHoCH = long).
-The target is the nearest untapped pool on the opposite side that is at
-least `min_rr` times the risk away from the entry. Closer pools that were
-skipped are counted (`pools_between`) so the backtest can compare this with
-the strict version ("the nearest pool itself must be >= min R").
+
+Strict rule (default, Robin 2026-11-02): the target is the nearest untapped
+pool on the opposite side, and the trade only counts if that pool is at
+least `min_rr` times the risk away from the entry.
+
+`skip_closer=True` gives the earlier variant: skip pools closer than
+`min_rr` and take the first one beyond it (`pools_between` counts the skipped
+ones). Kept so the backtest can compare the two.
 
 No target within reach = no trade: this is the bot's version of
 "no clear draw, no trade".
@@ -32,8 +36,12 @@ def pools_as_of(pools: pd.DataFrame, t: int) -> pd.DataFrame:
 
 
 def find_target(pools_now: pd.DataFrame, direction: str, entry: float, stop: float,
-                min_rr: float = 2.0) -> dict | None:
-    """Nearest opposite pool at least `min_rr` x risk from the entry, or None."""
+                min_rr: float = 2.0, skip_closer: bool = False) -> dict | None:
+    """Target pool for a trade, or None (= no trade).
+
+    Strict (default): the nearest opposite pool, only if it is >= `min_rr` x risk away.
+    skip_closer: the nearest opposite pool that is >= `min_rr` x risk away.
+    """
     risk = abs(entry - stop)
     if risk <= 0:
         return None
@@ -46,6 +54,8 @@ def find_target(pools_now: pd.DataFrame, direction: str, entry: float, stop: flo
     if side.empty:
         return None
     side = side.assign(rr=dist / risk).sort_values("rr")
+    if not skip_closer:
+        side = side.iloc[:1]
     far_enough = side[side["rr"] >= min_rr]
     if far_enough.empty:
         return None

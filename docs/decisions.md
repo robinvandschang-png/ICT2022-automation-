@@ -95,7 +95,12 @@ starting points; final values come from the backtest, not from eyeballing.
 - Reading: the nearest pool works as a magnet; pools further out are
   reached much less often. R:R has to come from a better entry (retrace into
   the FVG / order block shrinks the risk), not from reaching for farther
-  pools. Proposed: strict variant — target = nearest pool, trade only if it
-  is >= 2R from the actual entry (awaiting Robin).
+  pools.
+- Decided (Robin, 2026-11-02): strict rule is the default — target = the
+  nearest opposite pool, trade only if it is >= 2R from the actual entry.
+  The skip-closer variant stays available (`skip_closer=True`) for the
+  backtest comparison.
+- Data (Robin, 2026-11-02): keep building on the free NQ data we have
+  (Jan–Apr 2026). Longer history (e.g. Databento NQ 1m from 2023) later.
 - Data limit: 3 months of 5m data gives ~44 sequences. The backtest needs
   at least 2 years of NQ 5m history.

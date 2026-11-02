@@ -169,7 +169,7 @@ starting points; final values come from the backtest, not from eyeballing.
   screener alerts only in London + NY AM (`ict/config.py`). In this sample
   those two windows had 14 sequences, 4 wins / 4 losses at 1R, +0.5R.
 
-## Premium / discount (built, range definition pending)
+## Premium / discount (done)
 - Robin's rule (2026-11-02): a long's entry must be in discount of the
   dealing range, a short's in premium.
 - Two range definitions measured (`ict/premium_discount.py`, `tools/pd_check.py`):
@@ -185,3 +185,20 @@ starting points; final values come from the backtest, not from eyeballing.
     Wrong half: 1R 7 W / 5 L, +2.0R; pool target 1 fill, -1.0R.
 - Reading: with the dealing range, the rule is compatible with the entry
   and points the right way (tiny sample).
+- Decided (Robin, 2026-11-02): the bigger dealing range — latest significant
+  (tier-2) swing high and low, widened to the sweep extreme. Gate: longs in
+  discount (< 50%), shorts in premium (> 50%). `config.PD_RANGE = "dealing"`.
+
+## v1 model assembled (`ict/model.py: build_trades`, `tools/run_model.py`)
+- Gates in order: kill zone (London + NY AM) -> FVG in the displacement leg
+  -> entry beyond stop? -> dealing-range half -> strict target >= 2R ->
+  limit order at the FVG near edge (1 h) -> stop / target / day end.
+- NQ 5m, 9 Feb – 15 Apr 2026 (after warm-up), NOT a validated backtest:
+  44 sequences -> 14 in London/NY AM -> 11 with an FVG -> 3 in the correct
+  half -> 2 with a target >= 2R -> 2 trades: 1 win (+3.2R), 1 loss.
+- Variants: all hours 8 fills, 5 W / 3 L, +10.5R; all hours without the P/D
+  gate 9 fills, +9.5R; all hours with a fixed 1R target 14 fills, 10 W / 4 L,
+  +6.0R; London + NY AM with 1R 3 fills, 2 W / 1 L, +1.0R.
+- Reading: as decided, v1 produces about one NQ trade a month. The biggest
+  filters are the kill-zone gate (30 of 44) and the P/D gate (8 of 11).
+  Too few trades to judge the rules on NQ alone, even with years of data.

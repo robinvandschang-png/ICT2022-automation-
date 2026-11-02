@@ -24,10 +24,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from ict.arrays import leg_fvgs, leg_order_block, overlaps
 from ict.data import load_csv
 from ict.draw import find_target, pools_as_of
-from ict.model import build_context, simulate_trade, sweep_choch_sequences
+from ict.model import build_context, entry_options, simulate_trade, sweep_choch_sequences
 from ict.structure import UP
 from tools.plot_swings import draw_candles
 
@@ -35,24 +34,7 @@ TZ = "America/New_York"
 OPTIONS = ["CHoCH close", "FVG edge (latest)", "FVG CE (latest)", "FVG edge (first)", "Order block"]
 
 
-def entries_for(ctx, seq) -> dict:
-    """Entry price and the bar from which the order can be placed, per option."""
-    df = ctx.df
-    close = df["close"].to_numpy()
-    s, e, d = seq.leg_start, seq.break_bar, seq.direction
-    gaps = leg_fvgs(df, ctx.vol, s, e, d)
-    ob = leg_order_block(df, ctx.vol, s, e, d)
-    out = {"CHoCH close": (close[seq.setup_bar], seq.setup_bar, True)}
-    if gaps:
-        last, first = gaps[-1], gaps[0]
-        out["FVG edge (latest)"] = (last["proximal"], max(seq.setup_bar, last["known_at"]), False)
-        out["FVG CE (latest)"] = (last["ce"], max(seq.setup_bar, last["known_at"]), False)
-        out["FVG edge (first)"] = (first["proximal"], max(seq.setup_bar, first["known_at"]), False)
-    if ob:
-        out["Order block"] = (ob["proximal"], seq.setup_bar, False)
-    meta = {"n_fvg": len(gaps), "has_ob": ob is not None,
-            "ob_fvg_overlap": any(overlaps(g, ob) for g in gaps), "gaps": gaps, "ob": ob}
-    return out, meta
+entries_for = entry_options   # moved into ict.model
 
 
 def run(ctx, seqs: pd.DataFrame, wait: int = 12, min_rr: float = 2.0) -> pd.DataFrame:

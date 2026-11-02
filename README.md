@@ -37,9 +37,9 @@ half. Stop beyond the sweep, target the draw on liquidity, minimum R:R.
 | 4. Liquidity pools and sweeps | `ict/liquidity.py` | Done — sweep rule provisional (back inside within 3 candles, ≤ 1 yardstick deep); equal highs/lows pending |
 | 2. Draw on liquidity | `ict/draw.py` | Done (v1) — strict: target = nearest untapped opposite pool, trade only if ≥ 2R away; higher-timeframe draw later as a tested filter |
 | PD arrays: FVG, order block (entry) | `ict/arrays.py` | Built — default entry option still open (FVG edge / FVG midpoint / order block) |
-| Premium / discount, dealing range | `ict/premium_discount.py` | Built — measured on every entry; which range defines the gate awaits Robin |
+| Premium / discount, dealing range | `ict/premium_discount.py` | Done — gate: entry in discount (longs) / premium (shorts) of the bigger dealing range |
 | Time windows (kill zones, Silver Bullet) | `ict/timewindows.py` | Built — every setup records its kill zone; gate available, off until the backtest shows it helps |
-| Model assembly (gated sequence) | `ict/model.py` | In progress — sweep → CHoCH sequences and trade simulation done |
+| Model assembly (gated sequence) | `ict/model.py` | Done (v1) — all gates in one pipeline (`build_trades`); run with `tools/run_model.py` |
 | Backtest (results in R, out-of-sample) | — | Planned |
 | Screener and alerts | — | Planned |
 
@@ -85,6 +85,7 @@ tools/
   entry_check.py     compare entry options (FVG edge / CE / order block) on the sequences
   time_check.py      when NQ's daily high/low forms; setups and results by kill zone
   pd_check.py        premium/discount position of entries and results by half
+  run_model.py       run the decided v1 model + variants; gate funnel, trades CSV and chart
 tests/             unit tests incl. no-lookahead checks
 docs/decisions.md  design decision log
 ```

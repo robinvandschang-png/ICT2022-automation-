@@ -1,17 +1,17 @@
-"""Model assembly (work in progress): sweep -> CHoCH on displacement -> entry -> trade.
+"""The v1 model: sweep -> CHoCH on displacement -> FVG entry -> P/D gate -> target -> trade.
 
-Built so far
 - `build_context`: every detector run once over a candle series.
 - `sweep_choch_sequences`: each sweep followed by a displacement break in the
   reversal direction within `window` candles. Stop = beyond the furthest
-  price since the take, plus `buffer` yardsticks.
+  price since the take, plus `buffer` yardsticks. Records the sweep's kill zone.
+- `entry_options`: entry price and placement bar for each entry style.
+- `build_trades`: applies the gates in order and simulates each trade
+  (`ModelParams`, defaults from ict/config.py).
 - `simulate_trade`: limit order at `entry`, then stop vs target, within the
   trading day. Conservative on ambiguity: a candle that touches both the stop
   and the target counts as a stop; the fill candle cannot also hit the target.
 
-Time windows: each sequence records the kill zone of its sweep; an optional
-gate keeps only chosen windows (off by default until the backtest shows it helps).
-Not yet included: premium/discount, costs.
+Not yet included: costs, a higher-timeframe draw filter.
 """
 from __future__ import annotations
 
@@ -119,3 +119,115 @@ def simulate_trade(ctx: Context, direction: str, entry: float, stop: float, targ
     last = close[end - 1]
     return {"outcome": "open at day end", "r": ((last - entry) if up else (entry - last)) / risk,
             "fill_bar": fill, "exit_bar": end - 1}
+
+
+ENTRY_STYLES = ["CHoCH close", "FVG edge (latest)", "FVG CE (latest)", "FVG edge (first)", "Order block"]
+
+
+def entry_options(ctx: Context, seq) -> tuple[dict, dict]:
+    """{style: (entry price, placement bar, immediate fill?)} and array details for one sequence."""
+    from ict.arrays import leg_fvgs, leg_order_block, overlaps
+
+    close = ctx.df["close"].to_numpy()
+    s, e, d = int(seq.leg_start), int(seq.break_bar), seq.direction
+    gaps = leg_fvgs(ctx.df, ctx.vol, s, e, d)
+    ob = leg_order_block(ctx.df, ctx.vol, s, e, d)
+    out = {"CHoCH close": (close[seq.setup_bar], int(seq.setup_bar), True)}
+    if gaps:
+        last, first = gaps[-1], gaps[0]
+        out["FVG edge (latest)"] = (last["proximal"], max(int(seq.setup_bar), last["known_at"]), False)
+        out["FVG CE (latest)"] = (last["ce"], max(int(seq.setup_bar), last["known_at"]), False)
+        out["FVG edge (first)"] = (first["proximal"], max(int(seq.setup_bar), first["known_at"]), False)
+    if ob:
+        out["Order block"] = (ob["proximal"], int(seq.setup_bar), False)
+    meta = {"n_fvg": len(gaps), "has_ob": ob is not None,
+            "ob_fvg_overlap": any(overlaps(g, ob) for g in gaps), "gaps": gaps, "ob": ob}
+    return out, meta
+
+
+@dataclass(frozen=True)
+class ModelParams:
+    entry: str = "FVG edge (latest)"
+    wait: int = 12                       # candles an unfilled entry stays live
+    target_rule: str = "strict"          # "strict" | "skip_closer" | "fixed"
+    min_rr: float = 2.0                  # pool targets must be at least this far
+    fixed_rr: float = 1.0                # used when target_rule == "fixed"
+    pd_gate: str | None = "dealing"      # "dealing" | "setup" | None (off)
+    killzones: tuple | None = None       # e.g. ("London", "NY AM"); None = all hours
+
+    @classmethod
+    def from_config(cls) -> "ModelParams":
+        from ict import config
+        return cls(entry=config.ENTRY, wait=config.ENTRY_WAIT_CANDLES, target_rule=config.TARGET_RULE,
+                   min_rr=config.MIN_RR, pd_gate=config.PD_RANGE,
+                   killzones=tuple(config.SCREENER_KILLZONES))
+
+
+def build_trades(ctx: Context, params: ModelParams = ModelParams(), seqs: pd.DataFrame | None = None) -> pd.DataFrame:
+    """One row per sweep -> CHoCH sequence: which gate stopped it, or the simulated trade.
+
+    status: "outside kill zones" | "no array" | "entry beyond stop" | "wrong half" |
+            "no target" | "order"
+    """
+    from ict.draw import find_target, pools_as_of
+    from ict.premium_discount import dealing_range, in_correct_half, position, setup_range
+
+    if seqs is None:
+        seqs = sweep_choch_sequences(ctx)
+    close = ctx.df["close"].to_numpy()
+    rows = []
+    for seq in seqs.itertuples(index=False):
+        row = {"sweep_bar": seq.sweep_bar, "time": ctx.df.index[seq.sweep_bar], "swept": seq.swept,
+               "direction": seq.direction, "killzone": seq.killzone, "stop": seq.stop}
+        if params.killzones is not None and seq.killzone not in params.killzones:
+            rows.append({**row, "status": "outside kill zones"})
+            continue
+        opts, _ = entry_options(ctx, seq)
+        if params.entry not in opts:
+            rows.append({**row, "status": "no array"})
+            continue
+        entry, place, immediate = opts[params.entry]
+        up = seq.direction == UP
+        if not immediate and ((close[place] <= entry) if up else (close[place] >= entry)):
+            entry, immediate = close[place], True        # price already inside: take it now
+        if (up and entry <= seq.stop) or (not up and entry >= seq.stop):
+            rows.append({**row, "status": "entry beyond stop"})
+            continue
+
+        dr = dealing_range(ctx.df, ctx.swings, int(seq.sweep_bar), place)
+        pos_dealing = position(entry, *dr) if dr else np.nan
+        pos_setup = position(entry, *setup_range(ctx.df, int(seq.sweep_bar), place, seq.direction))
+        row.update(entry=entry, place_bar=place, pos_dealing=pos_dealing, pos_setup=pos_setup)
+        pos = {"dealing": pos_dealing, "setup": pos_setup}.get(params.pd_gate)
+        if params.pd_gate and (np.isnan(pos) or not in_correct_half(pos, seq.direction)):
+            rows.append({**row, "status": "wrong half"})
+            continue
+
+        risk = abs(entry - seq.stop)
+        if params.target_rule == "fixed":
+            target = entry + params.fixed_rr * risk if up else entry - params.fixed_rr * risk
+            tgt = {"target_name": f"{params.fixed_rr:g}R", "target_price": target, "target_rr": params.fixed_rr}
+        else:
+            tgt = find_target(pools_as_of(ctx.pools, place), seq.direction, entry, seq.stop,
+                              params.min_rr, skip_closer=params.target_rule == "skip_closer")
+            if tgt is None:
+                rows.append({**row, "status": "no target"})
+                continue
+        res = simulate_trade(ctx, seq.direction, entry, seq.stop, tgt["target_price"], place, params.wait, immediate)
+        rows.append({**row, "status": "order", "risk_pts": risk, "target": tgt["target_price"],
+                     "target_name": tgt["target_name"], "target_rr": tgt["target_rr"], **res})
+    return pd.DataFrame(rows)
+
+
+def summarize(trades: pd.DataFrame) -> dict:
+    """Counts and R for one run of build_trades."""
+    orders = trades[trades["status"] == "order"] if len(trades) else trades
+    filled = orders[orders["fill_bar"].notna()] if len(orders) else orders
+    wins = int((filled["outcome"] == "target").sum()) if len(filled) else 0
+    losses = int((filled["outcome"] == "stop").sum()) if len(filled) else 0
+    return {"sequences": len(trades), "orders": len(orders), "filled": len(filled),
+            "wins": wins, "losses": losses,
+            "open at day end": int((filled["outcome"] == "open at day end").sum()) if len(filled) else 0,
+            "win rate": round(wins / max(wins + losses, 1) * 100),
+            "total R": round(float(filled["r"].sum()), 1) if len(filled) else 0.0,
+            "avg R": round(float(filled["r"].mean()), 2) if len(filled) else float("nan")}

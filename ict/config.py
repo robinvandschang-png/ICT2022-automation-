@@ -14,3 +14,7 @@ MIN_RR = 2.0
 # Robin trades London open and NY AM most of the time (2026-11-02).
 # The screener alerts only in these windows; the backtest compares them with all hours.
 SCREENER_KILLZONES = ["London", "NY AM"]
+
+# Robin: a long's entry must be in discount, a short's in premium, of the bigger
+# dealing range (latest significant swing high/low), 2026-11-02.
+PD_RANGE = "dealing"               # "dealing" | "setup" | None

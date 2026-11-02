@@ -7,6 +7,9 @@ finally validated by backtest before any live scanning.
 > Status: early build. Detectors are being built concept by concept.
 > There is no live scanning or order execution yet.
 
+**Current scope:** NQ (E-mini Nasdaq-100) only; liquidity sweeps detected on
+the 5-minute chart. Other markets come after the model is validated on NQ.
+
 ## The model being automated
 
 In a high-probability time window, price sweeps liquidity against the intended

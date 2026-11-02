@@ -3,6 +3,13 @@
 Running log of how each ICT concept is quantified. "Provisional" values are
 starting points; final values come from the backtest, not from eyeballing.
 
+## Scope (Phase 0)
+- Market: NQ (E-mini Nasdaq-100) only, for now (Robin, 2026-11-02).
+- Sweep detection: 5-minute chart (Robin, 2026-11-02).
+- Open: entry timeframe; whether swing pools also come from a higher
+  timeframe (15m / 1H). Default until decided: fixed levels (PDH/PDL,
+  PWH/PWL, Asia/London H/L) + 5m tier-2 swings.
+
 ## Yardstick for "big"
 - Time-of-day range: average true range at the same exchange clock time over
   the previous 20 sessions (`ict/volatility.py`). Falls back to ATR(14) during

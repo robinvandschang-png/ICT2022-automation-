@@ -77,3 +77,25 @@ starting points; final values come from the backtest, not from eyeballing.
 - Provisional: the depth cap rests on few cases. Batch 2 (boundary cases,
   seed 11) was generated but left unlabelled when we moved on; the backtest
   will compare max reclaim 1–3 and depth caps 0.75–1.5.
+
+## Concept 2 — Draw on liquidity (v1 built)
+- Version B (Robin, 2026-11-02): the setup decides direction (sell-side
+  sweep + bullish CHoCH = long); target = nearest untapped opposite pool at
+  least 2R from the entry; no such pool = no trade. A higher-timeframe draw
+  model (structure, premium/discount) comes later as a filter tested in the
+  backtest. Code: `ict/draw.py`.
+- Sanity check, NOT a backtest (`tools/draw_check.py`; NQ 5m Feb–Apr 2026,
+  44 sweep -> displacement-CHoCH sequences; placeholder entry at the CHoCH
+  close, stop beyond the sweep extreme, no costs):
+  - 98% had a pool >= 2R, but 88% of those skipped at least one closer pool.
+  - Target before stop 14%, stop 51%, still open at day end 35%;
+    average +0.04R gross.
+  - Nearest opposite pool reached before the stop: 52% (median 1.0R away);
+    2nd nearest 40% (1.4R); 3rd nearest 26% (1.6R).
+- Reading: the nearest pool works as a magnet; pools further out are
+  reached much less often. R:R has to come from a better entry (retrace into
+  the FVG / order block shrinks the risk), not from reaching for farther
+  pools. Proposed: strict variant — target = nearest pool, trade only if it
+  is >= 2R from the actual entry (awaiting Robin).
+- Data limit: 3 months of 5m data gives ~44 sequences. The backtest needs
+  at least 2 years of NQ 5m history.

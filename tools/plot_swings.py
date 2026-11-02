@@ -25,6 +25,26 @@ TIER_STYLE = {
 }
 
 
+def draw_candles(ax, df: pd.DataFrame, lo: int, hi: int) -> None:
+    """Candles at integer x positions lo..hi-1 (gaps such as weekends are skipped)."""
+    view = df.iloc[lo:hi]
+    x = range(lo, hi)
+    up = view["close"] >= view["open"]
+    ax.vlines(x, view["low"], view["high"], color="#888780", linewidth=0.7)
+    body_lo = view[["open", "close"]].min(axis=1)
+    body_h = (view["close"] - view["open"]).abs()
+    ax.bar(x, body_h, bottom=body_lo, width=0.7,
+           color=["#5DCAA5" if u else "#F0997B" for u in up], edgecolor="none")
+
+
+def time_axis(ax, df: pd.DataFrame, lo: int, hi: int, tz: str | None = None, n: int = 10) -> None:
+    idx = df.index if tz is None else df.index.tz_convert(tz)
+    ticks = list(range(lo, hi, max(1, (hi - lo) // n)))
+    ax.set_xticks(ticks)
+    ax.set_xticklabels([idx[i].strftime("%m-%d %H:%M") for i in ticks], fontsize=8)
+    ax.set_xlim(lo - 1, hi)
+
+
 def plot_swings(df: pd.DataFrame, params: SwingParams, start=None, end=None,
                 out: str = "swings.png", title: str = "") -> dict:
     """Detect on the full history (for warm-up), draw only [start, end]."""
@@ -33,16 +53,9 @@ def plot_swings(df: pd.DataFrame, params: SwingParams, start=None, end=None,
 
     lo = 0 if start is None else df.index.searchsorted(pd.Timestamp(start))
     hi = len(df) if end is None else df.index.searchsorted(pd.Timestamp(end))
-    view = df.iloc[lo:hi]
-    x = range(lo, hi)
 
     fig, ax = plt.subplots(figsize=(14, 6.5), dpi=130)
-    up = view["close"] >= view["open"]
-    ax.vlines(x, view["low"], view["high"], color="#888780", linewidth=0.7)
-    body_lo = view[["open", "close"]].min(axis=1)
-    body_h = (view["close"] - view["open"]).abs()
-    ax.bar(x, body_h, bottom=body_lo, width=0.7,
-           color=["#5DCAA5" if u else "#F0997B" for u in up], edgecolor="none")
+    draw_candles(ax, df, lo, hi)
 
     pv = pivots[(pivots["bar"] >= lo) & (pivots["bar"] < hi)]
     ax.scatter(pv["bar"], pv["price"], s=10, color="#5F5E5A", zorder=3,
@@ -57,10 +70,7 @@ def plot_swings(df: pd.DataFrame, params: SwingParams, start=None, end=None,
         style["label"] = f"{style['label']} ({len(t)})"
         ax.scatter(t["bar"], t["price"], zorder=4 + tier, **style)
 
-    ticks = list(range(lo, hi, max(1, (hi - lo) // 10)))
-    ax.set_xticks(ticks)
-    ax.set_xticklabels([df.index[i].strftime("%m-%d %H:%M") for i in ticks], rotation=0, fontsize=8)
-    ax.set_xlim(lo - 1, hi)
+    time_axis(ax, df, lo, hi)
     ax.grid(alpha=0.15)
     ax.legend(loc="upper left", fontsize=9, frameon=False)
     ax.set_title(title or f"Swings  (pivot_bars={params.pivot_bars}, min_move_atr={params.min_move_atr})",

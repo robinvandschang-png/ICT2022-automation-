@@ -20,28 +20,19 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from ict.volatility import DEFAULT_TZ, atr, volatility  # noqa: F401  (atr re-exported)
+
 HIGH, LOW = "high", "low"
 
 
 @dataclass(frozen=True)
 class SwingParams:
     pivot_bars: int = 2        # candles required on each side of a raw pivot
-    atr_period: int = 14       # Wilder ATR length used to scale "big enough"
-    min_move_atr: float = 1.0  # opposite swing must be >= this many ATRs away
-
-
-def atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
-    """Wilder's Average True Range (causal)."""
-    prev_close = df["close"].shift()
-    true_range = pd.concat(
-        [
-            df["high"] - df["low"],
-            (df["high"] - prev_close).abs(),
-            (df["low"] - prev_close).abs(),
-        ],
-        axis=1,
-    ).max(axis=1)
-    return true_range.ewm(alpha=1 / period, adjust=False, min_periods=period).mean()
+    atr_period: int = 14       # ATR length (also the fallback for "tod")
+    min_move_atr: float = 1.0  # opposite swing must be >= this many yardsticks away
+    vol_method: str = "tod"    # yardstick: "tod" (time-of-day range) or "atr"
+    tod_lookback: int = 20     # sessions averaged for "tod"
+    tz: str = DEFAULT_TZ       # exchange clock for "tod"
 
 
 def raw_pivots(df: pd.DataFrame, n: int) -> pd.DataFrame:
@@ -125,8 +116,9 @@ def detect_swings(df: pd.DataFrame, params: SwingParams = SwingParams()) -> pd.D
     All bar columns are integer positions into `df`; NaN means "not (yet) known".
     """
     pivots = raw_pivots(df, params.pivot_bars)
-    atr_values = atr(df, params.atr_period).to_numpy()
-    records = _tier1(pivots, atr_values, params.min_move_atr)
+    yardstick = volatility(df, params.vol_method, params.atr_period,
+                           params.tod_lookback, params.tz).to_numpy()
+    records = _tier1(pivots, yardstick, params.min_move_atr)
 
     for r in records:
         r["t2_confirmed"] = None

@@ -50,10 +50,12 @@ def active_window(df: pd.DataFrame, min_vol_share: float = 0.2) -> pd.DataFrame:
 
 
 def variants(v1: ModelParams) -> dict:
+    research = dataclasses.replace(v1, killzones=None, htf_gate=None)   # no time / HTF gates
     return {
-        "v1 (London + NY AM)": v1,
-        "v1 all hours": dataclasses.replace(v1, killzones=None),
-        "v1 all hours, 1R target": dataclasses.replace(v1, killzones=None, target_rule="fixed", fixed_rr=1.0),
+        "v1 as decided": v1,
+        "v1 (London + NY AM)": dataclasses.replace(v1, htf_gate=None),
+        "v1 all hours": research,
+        "v1 all hours, 1R target": dataclasses.replace(research, target_rule="fixed", fixed_rr=1.0),
     }
 
 
@@ -145,7 +147,7 @@ def main() -> None:
               f"({wr:.0f}%), total {tot['total R']:+.1f}R, avg {tot['total R'] / max(tot['filled'], 1):+.2f}R")
         by_class = v.groupby("class")[["days", "sequences", "filled", "wins", "losses", "total R"]].sum()
         print(by_class.to_string())
-    v1 = t[t["variant"] == "v1 (London + NY AM)"].set_index("sym")
+    v1 = t[t["variant"] == "v1 as decided"].set_index("sym")
     print("\nv1 per market:")
     print(v1[["class", "days", "sequences", "orders", "filled", "wins", "losses", "total R"]].to_string())
     if len(trades):

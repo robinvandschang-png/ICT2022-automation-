@@ -19,6 +19,7 @@ SCREENER_KILLZONES = ["London", "NY AM"]
 # dealing range (latest significant swing high/low), 2026-11-02.
 PD_RANGE = "dealing"               # "dealing" | "setup" | None
 
-# Higher-timeframe structure bias (1H / 4H): recorded on every setup; gate off
-# until longer data shows it helps (no benefit seen on Jan–Apr 2026).
-HTF_GATE = None                    # "1h" | "4h" | None
+# Robin reads the trend from 1H structure (2026-11-02): the screener only takes
+# setups in the direction of the latest 1H structure break. Research runs keep
+# comparing with / without it (no measurable effect on Jan–Apr 2026 yet).
+HTF_GATE = "1h"                    # "1h" | "4h" | None

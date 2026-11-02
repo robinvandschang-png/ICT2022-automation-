@@ -9,7 +9,7 @@ finally validated by backtest before any live scanning.
 
 **Current scope:** NQ (E-mini Nasdaq-100) only; liquidity sweeps detected on
 the 5-minute chart; entries at the FVG near edge; screener windows London
-open and NY AM. Defaults live in `ict/config.py`. Other markets come after
+open and NY AM; only in the direction of the 1H trend. Defaults live in `ict/config.py`. Other markets come after
 the model is validated on NQ.
 
 ## The model being automated
@@ -40,7 +40,7 @@ half. Stop beyond the sweep, target the draw on liquidity, minimum R:R.
 | Premium / discount, dealing range | `ict/premium_discount.py` | Done — gate: entry in discount (longs) / premium (shorts) of the bigger dealing range |
 | Time windows (kill zones, Silver Bullet) | `ict/timewindows.py` | Built — every setup records its kill zone; gate available, off until the backtest shows it helps |
 | Model assembly (gated sequence) | `ict/model.py` | Done (v1) — all gates in one pipeline (`build_trades`); run with `tools/run_model.py` |
-| Higher-timeframe bias (1H / 4H structure) | `ict/htf.py` | Built — recorded on every setup; gate off (no consistent benefit on Jan–Apr 2026) |
+| Higher-timeframe bias (1H / 4H structure) | `ict/htf.py` | Done — screener trades only with the 1H trend (Robin's practice); research compares with / without |
 | Multi-market research run (36 CME futures, same rules) | `tools/run_markets.py` | Done — results net of costs in `docs/decisions.md` |
 | Backtest (results in R, out-of-sample) | — | Next — needs longer history |
 | Screener and alerts | — | Planned |

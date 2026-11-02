@@ -34,19 +34,20 @@ def main() -> None:
     seqs = seqs[seqs["sweep_bar"] >= warm].reset_index(drop=True)
 
     v1 = ModelParams.from_config()
+    research = dataclasses.replace(v1, killzones=None, htf_gate=None)
     variants = {
-        "v1 as decided (London + NY AM)": v1,
-        "v1, all hours": dataclasses.replace(v1, killzones=None),
-        "v1, all hours, no P/D gate": dataclasses.replace(v1, killzones=None, pd_gate=None),
-        "v1, all hours, fixed 1R target": dataclasses.replace(v1, killzones=None, target_rule="fixed", fixed_rr=1.0),
-        "v1, London + NY AM, fixed 1R target": dataclasses.replace(v1, target_rule="fixed", fixed_rr=1.0),
+        "v1 as decided (London + NY AM, 1H bias)": v1,
+        "v1 without the 1H bias gate": dataclasses.replace(v1, htf_gate=None),
+        "v1, all hours, no 1H gate": research,
+        "v1, all hours, no 1H gate, no P/D gate": dataclasses.replace(research, pd_gate=None),
+        "v1, all hours, no 1H gate, fixed 1R target": dataclasses.replace(research, target_rule="fixed", fixed_rr=1.0),
     }
 
     period = f"{df.index[warm].tz_convert(TZ):%d %b %Y} – {df.index[-1].tz_convert(TZ):%d %b %Y}"
     print(f"NQ 5m, {period}: {len(seqs)} sweep -> CHoCH sequences\n")
 
     trades = build_trades(ctx, v1, seqs)
-    order = ["outside kill zones", "no array", "entry beyond stop", "wrong half", "no target", "order"]
+    order = ["outside kill zones", "no array", "entry beyond stop", "wrong half", "against HTF bias", "no target", "order"]
     funnel = trades["status"].value_counts().reindex(order, fill_value=0)
     print("Gate funnel, v1 as decided:")
     remaining = len(trades)

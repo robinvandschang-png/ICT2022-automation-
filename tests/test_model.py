@@ -50,7 +50,7 @@ def test_killzone_gate_and_summary(ctx):
 def test_from_config_matches_decisions():
     p = ModelParams.from_config()
     assert p.entry == "FVG edge (latest)" and p.target_rule == "strict" and p.min_rr == 2.0
-    assert p.pd_gate == "dealing" and p.killzones == ("London", "NY AM")
+    assert p.pd_gate == "dealing" and p.killzones == ("London", "NY AM") and p.htf_gate == "1h"
 
 
 @pytest.mark.parametrize("rule", ["1h", "4h"])

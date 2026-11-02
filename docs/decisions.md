@@ -253,3 +253,10 @@ starting points; final values come from the backtest, not from eyeballing.
   every range spans zero. Not evidence against bias in general; evidence
   that this structure-based bias adds nothing visible on 3 months.
 - Not built: a daily-draw bias (e.g. which of PDH / PDL is the day's draw).
+- Decided (Robin, 2026-11-02): he reads the trend from 1H structure, so the
+  screener only takes setups in the direction of the latest 1H structure
+  break (`config.HTF_GATE = "1h"`). Research variants run without it.
+- The full rule set as decided (London + NY AM, FVG near edge, dealing-range
+  half, 1H trend, strict target >= 2R), 36 markets, 13 Feb – 10 Apr 2026:
+  13 trades (about 1.6 a week), 6 targets / 7 stops, +7.5R gross, net
+  +0.46R a trade with a 95% range of -0.61 to +1.63. NQ alone: 2 trades.

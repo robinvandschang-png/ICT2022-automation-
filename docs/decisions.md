@@ -292,7 +292,11 @@ starting points; final values come from the backtest, not from eyeballing.
   non-professionals only. Either fix the status (if it was set by mistake) or,
   if professional is correct, subscribe to CME Real-Time (P) only (covers NQ,
   ES, RTY, 6E/6B/6J).
-- Until then the screener runs on the delayed candles as a paper forward-test:
+- Robin set the status to non-professional and subscribed to the *US Securities
+  Snapshot and Futures Value Bundle (NP, L1)* (USD 10/month, waived at USD 30
+  commissions; IB requires >= USD 500 account equity). Real-time confirmed
+  2026-11-03 09:11 ET: all 11 markets, last closed candle 0.7 minutes old.
+- Before that, the screener could run on the delayed candles as a paper forward-test:
   signals are identical to real-time ones, only later, so they still count as
   out-of-sample evidence for the model.
 - The screener now re-checks the last 3 candles each cycle (was 1): a candle

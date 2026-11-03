@@ -302,3 +302,7 @@ starting points; final values come from the backtest, not from eyeballing.
 - The screener now re-checks the last 3 candles each cycle (was 1): a candle
   that arrives after its cycle (delayed or slow feed) no longer loses its
   signal; the state file prevents repeats (test added).
+- Telegram alerts (2026-11-03, Robin wants them): token and chat id live in
+  environment variables only. `python -m ict.live.notify` finds the chat id and
+  sends a test message. Sending retries network errors 3 times; a failing
+  channel never blocks the others or the log; replays are console-only.

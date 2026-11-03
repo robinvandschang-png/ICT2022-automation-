@@ -30,7 +30,7 @@ import pandas as pd
 
 from ict import config
 from ict.live.feeds import IBKRFeed, ReplayFeed, YahooFeed
-from ict.live.notify import from_env
+from ict.live.notify import ConsoleNotifier, TelegramNotifier, from_env
 from ict.live.signals import format_signal, scan
 from ict.model import ModelParams
 from ict.timewindows import KILLZONES
@@ -80,7 +80,10 @@ def scan_once(feed, markets, now, params, notifiers, state, log=None) -> list:
                     continue
                 text = format_signal(s, config.MAX_COST_R)
                 for n in notifiers:
-                    n.send(text)
+                    try:                        # a Telegram outage must not block the console / log
+                        n.send(text)
+                    except Exception as e:
+                        print(f"Alert via {type(n).__name__} failed: {e}", flush=True)
                 state.add(s.key)
                 sent.append(s)
                 if log:
@@ -111,6 +114,7 @@ def main() -> None:
     notifiers = from_env()
 
     if a.replay:
+        notifiers = [n for n in notifiers if isinstance(n, ConsoleNotifier)]   # replays never message the phone
         files = {s: f for s in markets for f in glob.glob(f"{a.replay}/{s}_5min*.csv")[:1]}
         feed = ReplayFeed(files)
         state = State(a.state + ".replay")
@@ -130,8 +134,9 @@ def main() -> None:
     else:
         feed = YahooFeed(config.SCREENER_MARKETS)
     state = State(a.state)
-    print(f"Screener running on {len(markets)} markets via {a.feed}; kill zones {config.SCREENER_KILLZONES}. "
-          "Ctrl+C to stop.")
+    channels = " + ".join("Telegram" if isinstance(n, TelegramNotifier) else "console" for n in notifiers)
+    print(f"Screener running on {len(markets)} markets via {a.feed}; kill zones {config.SCREENER_KILLZONES}; "
+          f"alerts: {channels}. Ctrl+C to stop.")
     while True:
         now = pd.Timestamp.now(tz="UTC")
         if scanning_now(now):

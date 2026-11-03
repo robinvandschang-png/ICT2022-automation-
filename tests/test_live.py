@@ -128,3 +128,45 @@ def test_ibkr_feed_loads_history_then_merges_updates(ctx, monkeypatch):  # noqa:
     pd.testing.assert_frame_equal(later[["open", "high", "low", "close"]], expected[["open", "high", "low", "close"]],
                                   check_freq=False)
     assert set(IB_CONTRACTS) >= {"NQ", "ES", "YM", "RTY", "CL", "GC", "6E", "6B", "6J", "ZN", "ZB"}
+
+
+def test_failing_alert_channel_does_not_block_the_others(ctx, tmp_path):  # noqa: F811
+    from ict.live.screener import State, scan_once
+
+    class Feed:
+        def candles(self, sym, now):
+            return ctx.df.iloc[: p + 1]
+
+    class Broken:
+        def send(self, text):
+            raise OSError("network down")
+
+    class Collect:
+        def __init__(self):
+            self.msgs = []
+
+        def send(self, text):
+            self.msgs.append(text)
+
+    orders = build_trades(ctx, PARAMS)
+    p = int(orders[orders["status"] == "order"].iloc[0]["place_bar"])
+    out = Collect()
+    sent = scan_once(Feed(), ["NQ"], None, PARAMS, [Broken(), out], State(str(tmp_path / "s.json")))
+    assert sent and len(out.msgs) == len(sent)
+
+
+def test_telegram_helpers(monkeypatch):
+    import io
+    import json
+    from ict.live import notify
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", " 123:abc ")
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "")
+    assert [type(n).__name__ for n in notify.from_env()] == ["ConsoleNotifier"]
+    monkeypatch.setenv("TELEGRAM_CHAT_ID", "42")
+    chans = notify.from_env()
+    assert type(chans[1]).__name__ == "TelegramNotifier" and "bot123:abc/" in chans[1].url
+    reply = {"ok": True, "result": [{"message": {"chat": {"id": 42, "first_name": "Robin"}}},
+                                    {"my_chat_member": {}}]}
+    monkeypatch.setattr(notify.urllib.request, "urlopen",
+                        lambda *a, **k: io.BytesIO(json.dumps(reply).encode()))
+    assert notify.telegram_chats("123:abc") == {42: "Robin"}

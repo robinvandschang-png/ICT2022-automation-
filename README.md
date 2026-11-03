@@ -129,11 +129,24 @@ and when to cancel it, stop, target, position size for your account, 1H trend,
 dealing-range position and estimated costs.
 
 ```bash
-pip install -r requirements.txt            # includes yfinance
-# optional, for phone alerts (see ict/live/notify.py for the 2-minute setup):
-export TELEGRAM_BOT_TOKEN=...  TELEGRAM_CHAT_ID=...
+pip install -r requirements.txt
 python -m ict.live.screener                # Ctrl+C to stop
 ```
+
+**Phone alerts via Telegram** (optional; console alerts always stay on). The
+token is a password: keep it in an environment variable, never in the code.
+
+1. In Telegram, message **@BotFather** → `/newbot` → pick a name → copy the token.
+2. Windows cmd: `setx TELEGRAM_BOT_TOKEN "<token>"` (macOS/Linux: `export ...`),
+   then open a **new** terminal (and re-activate the venv).
+3. Open your new bot in Telegram, press Start and send it any message.
+4. `python -m ict.live.notify` → prints your chat id →
+   `setx TELEGRAM_CHAT_ID "<chat id>"` → new terminal again.
+5. `python -m ict.live.notify` → sends a test message.
+6. Start the screener; its first line says `alerts: console + Telegram`.
+
+A Telegram outage never blocks the console alert or the log; replays never
+message the phone.
 
 - Markets, account size, risk % and the cost limit are in `ict/config.py`.
 - Scans London 02:00–05:00 and NY AM 08:30–11:00 ET, plus 75 minutes after

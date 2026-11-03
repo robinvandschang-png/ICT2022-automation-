@@ -53,6 +53,38 @@ def test_scanning_window_covers_killzones_plus_grace():
     assert not scanning_now(et("2026-04-10 13:00"), ["London", "NY AM"], 75)
 
 
+def test_screener_catches_signal_after_a_late_candle_and_sends_once(ctx, tmp_path):  # noqa: F811
+    """A cycle that misses a candle (feed late) must not lose the signal, and no repeats."""
+    from ict.live.screener import State, scan_once
+
+    class Feed:
+        def __init__(self):
+            self.upto = 0
+
+        def candles(self, sym, now):
+            return ctx.df.iloc[: self.upto]
+
+    class Collect:
+        def __init__(self):
+            self.msgs = []
+
+        def send(self, text):
+            self.msgs.append(text)
+
+    orders = build_trades(ctx, PARAMS)
+    p = int(orders[orders["status"] == "order"].iloc[0]["place_bar"])
+    feed, out, state = Feed(), Collect(), State(str(tmp_path / "state.json"))
+    feed.upto = p                    # order bar not arrived yet
+    scan_once(feed, ["NQ"], None, PARAMS, [out], state)
+    first = len(out.msgs)
+    feed.upto = p + 2                # order bar arrives together with the next one
+    sent = scan_once(feed, ["NQ"], None, PARAMS, [out], state)
+    assert any(s.sweep_time == pd.Timestamp(orders[orders["place_bar"] == p].iloc[0]["time"]) for s in sent)
+    feed.upto = p + 3
+    scan_once(feed, ["NQ"], None, PARAMS, [out], state)
+    assert len(out.msgs) == first + len(sent)       # nothing sent twice
+
+
 def test_closed_only_drops_forming_candle():
     from ict.live.feeds import closed_only
     idx = pd.date_range("2026-04-10 08:00", periods=3, freq="5min", tz="UTC")

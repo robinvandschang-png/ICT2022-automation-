@@ -153,15 +153,23 @@ in TWS / Gateway.
    Subscriptions, subscribe to the *US Securities Snapshot and Futures Value
    Bundle* (covers CME, CBOT, NYMEX, COMEX; non-professional). For a paper
    account, also enable sharing your live market data with it.
+   If every bundle is marked **(P)**, the account is set as a *professional*
+   subscriber and this bundle is not offered: check Market Data Subscriber
+   Status (answer truthfully), or, if professional is correct, subscribe to
+   *CME Real-Time (P)* only (covers NQ, ES, RTY, 6E, 6B, 6J).
+   Without a subscription the candles arrive about 10 minutes late; the
+   screener still works and gives the same signals, only later (fine for
+   paper forward-testing).
 2. **Run TWS or IB Gateway** and log in.
 3. **Enable the API:** Configure → API → Settings → tick *Enable ActiveX and
    Socket Clients*, keep *Read-Only API* ticked, note the socket port
    (TWS 7497 paper / 7496 live; IB Gateway 4002 paper / 4001 live), allow
    127.0.0.1.
 4. `pip install -r requirements.txt` (includes `ib_async`; Python 3.10+).
-5. Check the connection: `python -m ict.live.check_ibkr --port 7497`
-   (every market should show a last candle a few minutes old).
-6. Run: `python -m ict.live.screener --port 7497`
+5. Check the connection: `python -m ict.live.check_ibkr` (port from
+   `ict/config.py`, currently 7496; override with `--port`). With real-time data
+   every market shows a last candle under 6 minutes old.
+6. Run: `python -m ict.live.screener`
 
 Use `--feed yahoo` for the free, delayed feed instead.
 

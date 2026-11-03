@@ -284,3 +284,17 @@ starting points; final values come from the backtest, not from eyeballing.
   cycle (one request per market per 5 minutes). `python -m
   ict.live.check_ibkr` verifies contracts, candle counts and data delay.
   Needs IB's non-professional futures data bundle for real-time candles.
+- Connection verified on Robin's laptop (2026-11-03): TWS live, port 7496,
+  all 11 markets resolve to the Dec-2026 contracts, 1,272 candles each, but
+  candles arrive 10 minutes late (no futures data subscription yet).
+- IB showed only "(P)" bundles: the account is set as a professional
+  market-data subscriber, and the $10 futures bundle is offered to
+  non-professionals only. Either fix the status (if it was set by mistake) or,
+  if professional is correct, subscribe to CME Real-Time (P) only (covers NQ,
+  ES, RTY, 6E/6B/6J).
+- Until then the screener runs on the delayed candles as a paper forward-test:
+  signals are identical to real-time ones, only later, so they still count as
+  out-of-sample evidence for the model.
+- The screener now re-checks the last 3 candles each cycle (was 1): a candle
+  that arrives after its cycle (delayed or slow feed) no longer loses its
+  signal; the state file prevents repeats (test added).

@@ -72,7 +72,10 @@ def scan_once(feed, markets, now, params, notifiers, state, log=None) -> list:
     for sym in markets:
         try:
             df = feed.candles(sym, now)
-            for s in scan(df, sym, params, recent_bars=1, account=config.ACCOUNT_SIZE, risk_pct=config.RISK_PCT):
+            # look back 3 candles, not 1: if a cycle runs before the newest candle has
+            # arrived (delayed feed, slow update), the next cycle still catches it;
+            # the state file stops repeats.
+            for s in scan(df, sym, params, recent_bars=3, account=config.ACCOUNT_SIZE, risk_pct=config.RISK_PCT):
                 if s.key in state.sent:
                     continue
                 text = format_signal(s, config.MAX_COST_R)

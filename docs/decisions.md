@@ -306,3 +306,8 @@ starting points; final values come from the backtest, not from eyeballing.
   environment variables only. `python -m ict.live.notify` finds the chat id and
   sends a test message. Sending retries network errors 3 times; a failing
   channel never blocks the others or the log; replays are console-only.
+- Telegram settings file (2026-11-04): Windows `setx` + new terminals proved
+  error-prone, so `telegram.env` (git-ignored, next to README) now holds the
+  token and chat id and wins over environment variables.
+  `python -m ict.live.notify` finds the chat id, saves it there and sends a
+  test message in one run.

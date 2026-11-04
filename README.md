@@ -134,17 +134,20 @@ python -m ict.live.screener                # Ctrl+C to stop
 ```
 
 **Phone alerts via Telegram** (optional; console alerts always stay on). The
-token is a password: keep it in an environment variable, never in the code.
+token is a password: it lives in `telegram.env` next to this README
+(git-ignored, never committed) or in environment variables, never in the code.
 
 1. In Telegram, message **@BotFather** → `/newbot` → pick a name → copy the token.
-2. Windows cmd: `setx TELEGRAM_BOT_TOKEN "<token>"` (macOS/Linux: `export ...`),
-   then open a **new** terminal (and re-activate the venv).
-3. Open your new bot in Telegram, press Start and send it any message.
-4. `python -m ict.live.notify` → prints your chat id →
-   `setx TELEGRAM_CHAT_ID "<chat id>"` → new terminal again.
-5. `python -m ict.live.notify` → sends a test message.
-6. Start the screener; its first line says `alerts: console + Telegram`.
+2. Create `telegram.env` in the project folder (Notepad is fine) with one line:
+   `TELEGRAM_BOT_TOKEN=<token>`
+3. Open your new bot in Telegram, press Start and send it any message
+   (Telegram keeps it for 24 hours).
+4. `python -m ict.live.notify` → finds your chat id, saves it to
+   `telegram.env` and sends a test message.
+5. Start the screener; its first line says `alerts: console + Telegram`.
 
+To change the token later (e.g. after revoking it in @BotFather), edit the
+line in `telegram.env`; the file wins over environment variables.
 A Telegram outage never blocks the console alert or the log; replays never
 message the phone.
 

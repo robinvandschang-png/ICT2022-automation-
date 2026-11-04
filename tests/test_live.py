@@ -155,18 +155,36 @@ def test_failing_alert_channel_does_not_block_the_others(ctx, tmp_path):  # noqa
     assert sent and len(out.msgs) == len(sent)
 
 
-def test_telegram_helpers(monkeypatch):
+def test_telegram_helpers(monkeypatch, tmp_path):
     import io
     import json
     from ict.live import notify
+    f = tmp_path / "telegram.env"
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", " 123:abc ")
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "")
-    assert [type(n).__name__ for n in notify.from_env()] == ["ConsoleNotifier"]
+    assert [type(n).__name__ for n in notify.from_env(f)] == ["ConsoleNotifier"]
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "42")
-    chans = notify.from_env()
+    chans = notify.from_env(f)
     assert type(chans[1]).__name__ == "TelegramNotifier" and "bot123:abc/" in chans[1].url
     reply = {"ok": True, "result": [{"message": {"chat": {"id": 42, "first_name": "Robin"}}},
                                     {"my_chat_member": {}}]}
     monkeypatch.setattr(notify.urllib.request, "urlopen",
                         lambda *a, **k: io.BytesIO(json.dumps(reply).encode()))
     assert notify.telegram_chats("123:abc") == {42: "Robin"}
+
+
+def test_telegram_settings_file_wins_and_setup_saves_chat_id(monkeypatch, tmp_path):
+    from ict.live import notify
+    f = tmp_path / "telegram.env"
+    f.write_text('\ufeff# my bot\nTELEGRAM_BOT_TOKEN = "999:file"\n', encoding="utf-8")   # Notepad BOM, quotes
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "123:env")
+    monkeypatch.delenv("TELEGRAM_CHAT_ID", raising=False)
+    assert notify.telegram_settings(f) == ("999:file", "")
+    sent = []
+    monkeypatch.setattr(notify, "telegram_chats", lambda token: {7: "group", 42: "Robin"})
+    monkeypatch.setattr(notify.TelegramNotifier, "send", lambda self, text: sent.append((self.chat_id, text)))
+    notify.main(f)
+    assert notify.telegram_settings(f) == ("999:file", "42")
+    assert sent and sent[0][0] == "42"
+    notify.save_chat_id(43, f)                       # replaces, never duplicates
+    assert f.read_text().count("TELEGRAM_CHAT_ID") == 1 and notify.telegram_settings(f)[1] == "43"

@@ -142,9 +142,10 @@ token is a password: it lives in `telegram.env` next to this README
    `TELEGRAM_BOT_TOKEN=<token>`
 3. Open your new bot in Telegram, press Start and send it any message
    (Telegram keeps it for 24 hours).
-4. `python -m ict.live.notify` → finds your chat id, saves it to
-   `telegram.env` and sends a test message.
-5. Start the screener; its first line says `alerts: console + Telegram`.
+4. `python -m ict.live.notify` (Windows: double-click `telegram_test.bat`) →
+   finds your chat id, saves it to `telegram.env` and sends a test message.
+5. Start the screener (Windows: double-click `start_screener.bat`); its first
+   line says `alerts: console + Telegram`.
 
 To change the token later (e.g. after revoking it in @BotFather), edit the
 line in `telegram.env`; the file wins over environment variables.

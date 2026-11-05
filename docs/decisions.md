@@ -311,3 +311,26 @@ starting points; final values come from the backtest, not from eyeballing.
   token and chat id and wins over environment variables.
   `python -m ict.live.notify` finds the chat id, saves it there and sends a
   test message in one run.
+
+## Robin's written process (reference, 2026-11-05)
+1. Mark the most obvious swing highs/lows, equal highs/lows and the most
+   obvious draw on liquidity.
+2. 4H swings give market structure; 1H gives the daily bias.
+3. On 15m and 5m, in the kill zone, wait for a sweep of the liquidity on the
+   side opposite the daily bias.
+4. Price is rejected and moves the other way with displacement.
+5. Enter when price returns to the PD array (OB or FVG) the displacement left,
+   in premium/discount.
+6. Target the draw on liquidity; stop beyond the wick of the rejected candle.
+
+How the screener compares, open points to settle:
+- Step 4: the screener also requires a structure break (CHoCH) on the
+  displacement; the written process does not mention it.
+- Step 6 target: the screener targets the nearest untapped opposite pool and
+  only if >= 2R away; the process targets the step-1 draw, which can be farther.
+- Step 2: the screener's 1H bias can change during the day; the process sets
+  one bias per day. The 4H role (filter or context) is not defined yet.
+- Step 1: equal highs/lows are not detected yet.
+- Step 5: the screener enters only at the FVG near edge; the order block is
+  built but not used. Step 3: 15m is not used. Step 6 stop: the screener uses
+  the extreme of the sweep move (= the rejected wick) plus a small buffer.
